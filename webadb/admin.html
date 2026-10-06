@@ -124,6 +124,18 @@
 </head>
 <body>
   <div id="app"><div class="auth-wrap"><section class="auth"><h1>YiDream Suite</h1><p>Chargement de votre espace revendeur…</p></section></div></div>
+  <script>
+    (() => {
+      const showBootError = (message) => {
+        const app = document.getElementById('app');
+        if (!app || !app.textContent.includes('Chargement de votre espace revendeur')) return;
+        app.innerHTML = '<div class="auth-wrap"><section class="auth"><h1>YiDream Suite</h1><p>' + message + '</p><button class="button primary" onclick="location.reload()">Réessayer</button><p style="font-size:12px;margin-top:12px">Si le problème continue, vérifiez que les scripts du site ne sont pas bloqués par le navigateur.</p></section></div>';
+      };
+      setTimeout(() => showBootError('Le chargement prend plus de temps que prévu.'), 15000);
+      window.addEventListener('error', () => showBootError('Un élément nécessaire au chargement n’a pas pu démarrer.'));
+      window.addEventListener('unhandledrejection', () => showBootError('La connexion au service a échoué.'));
+    })();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script type="module" src="./src/admin-console.js"></script>
 </body>

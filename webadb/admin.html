@@ -126,19 +126,28 @@
   <div id="app"><div class="auth-wrap"><section class="auth"><h1>YiDream Suite</h1><p>Chargement de votre espace revendeur…</p></section></div></div>
   <script>
     (() => {
-      const showBootError = (message) => {
+      const showBootError = (message, details = '') => {
         const app = document.getElementById('app');
         if (!app || !app.textContent.includes('Chargement de votre espace revendeur')) return;
-        app.innerHTML = '<div class="auth-wrap"><section class="auth"><h1>YiDream Suite</h1><p>' + message + '</p><button class="button primary" onclick="location.reload()">Réessayer</button><p style="font-size:12px;margin-top:12px">Si le problème continue, vérifiez que les scripts du site ne sont pas bloqués par le navigateur.</p></section></div>';
+        app.innerHTML = '<div class="auth-wrap"><section class="auth"><h1>YiDream Suite</h1><p id="bootErrorMessage"></p><button class="button primary" onclick="location.reload()">Réessayer</button><p style="font-size:12px;margin-top:12px">Si le problème continue, vérifiez que les scripts du site ne sont pas bloqués par le navigateur.</p></section></div>';
+        app.querySelector('#bootErrorMessage').textContent = message;
+        if (details) {
+          const diagnostic = document.createElement('pre');
+          diagnostic.textContent = details;
+          diagnostic.style = 'white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.4 monospace;color:#a94343;background:#fff6f5;padding:10px;border-radius:8px;margin:10px 0';
+          app.querySelector('.auth').append(diagnostic);
+        }
       };
       setTimeout(() => showBootError('Le chargement prend plus de temps que prévu.'), 15000);
       window.addEventListener('error', (event) => {
         if (event instanceof ErrorEvent) {
-          console.error('YiDream admin startup error:', event.message, event.filename, event.lineno);
-          showBootError('Le démarrage a rencontré une erreur JavaScript. Rechargez la page ; si elle revient, transmettez ce message au support.');
+          const details = [event.message, event.filename, event.lineno ? 'ligne ' + event.lineno : '', event.error?.stack || ''].filter(Boolean).join('\n');
+          console.error('YiDream admin startup error:', details);
+          showBootError('Le démarrage a rencontré une erreur JavaScript.', details || 'Le navigateur n’a pas fourni de détail.');
         } else if (event.target instanceof HTMLScriptElement && event.target.type === 'module') {
-          console.error('YiDream admin module failed to load:', event.target.src);
-          showBootError('Le module administrateur n’a pas pu être chargé. Vérifiez que le navigateur autorise les scripts du site, puis réessayez.');
+          const details = event.target.src;
+          console.error('YiDream admin module failed to load:', details);
+          showBootError('Le module administrateur n’a pas pu être chargé.', details);
         }
       });
       window.addEventListener('unhandledrejection', (event) => {

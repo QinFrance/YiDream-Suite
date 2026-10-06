@@ -132,11 +132,41 @@
         app.innerHTML = '<div class="auth-wrap"><section class="auth"><h1>YiDream Suite</h1><p>' + message + '</p><button class="button primary" onclick="location.reload()">Réessayer</button><p style="font-size:12px;margin-top:12px">Si le problème continue, vérifiez que les scripts du site ne sont pas bloqués par le navigateur.</p></section></div>';
       };
       setTimeout(() => showBootError('Le chargement prend plus de temps que prévu.'), 15000);
-      window.addEventListener('error', () => showBootError('Un élément nécessaire au chargement n’a pas pu démarrer.'));
-      window.addEventListener('unhandledrejection', () => showBootError('La connexion au service a échoué.'));
+      window.addEventListener('error', (event) => {
+        if (event instanceof ErrorEvent) {
+          console.error('YiDream admin startup error:', event.message, event.filename, event.lineno);
+          showBootError('Le démarrage a rencontré une erreur JavaScript. Rechargez la page ; si elle revient, transmettez ce message au support.');
+        } else if (event.target instanceof HTMLScriptElement && event.target.type === 'module') {
+          console.error('YiDream admin module failed to load:', event.target.src);
+          showBootError('Le module administrateur n’a pas pu être chargé. Vérifiez que le navigateur autorise les scripts du site, puis réessayez.');
+        }
+      });
+      window.addEventListener('unhandledrejection', (event) => {
+        console.error('YiDream admin startup request failed:', event.reason);
+        showBootError('La connexion au service a échoué. Rechargez la page puis réessayez.');
+      });
     })();
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    window.supabaseReady = new Promise((resolve) => {
+      let settled = false;
+      const finish = (client) => { if (!settled) { settled = true; resolve(client || null); } };
+      const sources = [
+        'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
+        'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js'
+      ];
+      const load = (index) => {
+        if (index >= sources.length) { finish(null); return; }
+        const script = document.createElement('script');
+        script.src = sources[index];
+        script.onload = () => window.supabase?.createClient ? finish(window.supabase) : load(index + 1);
+        script.onerror = () => load(index + 1);
+        document.head.appendChild(script);
+      };
+      load(0);
+      setTimeout(() => finish(null), 12000);
+    });
+  </script>
   <script type="module" src="./src/admin-console.js"></script>
 </body>
 </html>

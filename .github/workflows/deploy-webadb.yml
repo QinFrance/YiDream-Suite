@@ -35,8 +35,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Accepter les licences du SDK Android préinstallé
-        run: yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
+      - name: Configurer le SDK Android
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          accept-android-sdk-licenses: true
 
       - name: Générer le gradle wrapper
         run: gradle wrapper --gradle-version 8.7
@@ -62,9 +65,6 @@ jobs:
 
       - name: Compiler le site
         working-directory: webadb
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
       - name: Configurer GitHub Pages

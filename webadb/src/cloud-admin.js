@@ -1,0 +1,44 @@
+const URL = import.meta.env.VITE_SUPABASE_URL || '';
+const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const clientLib = window.supabase;
+let db = null;
+
+export const configured = Boolean(URL && KEY && clientLib?.createClient);
+if (configured) db = clientLib.createClient(URL, KEY, {
+  auth: { flowType: 'pkce', detectSessionInUrl: true, autoRefreshToken: true, persistSession: true }
+});
+
+const mustDb = () => { if (!db) throw new Error('Supabase n’est pas configuré.'); return db; };
+export async function session(){ if(!db) return null; const {data,error}=await db.auth.getSession(); if(error) throw error; return data.session; }
+export function onAuthChange(fn){ if(!db) return () => {}; const {data}=db.auth.onAuthStateChange((_event,s)=>fn(s)); return ()=>data.subscription.unsubscribe(); }
+export async function signUp({shopName,email,password}) {
+  const {data,error}=await mustDb().auth.signUp({email,password,options:{data:{shop_name:shopName},emailRedirectTo:location.origin+location.pathname}});
+  if(error) throw error; return data;
+}
+export async function signIn({email,password}){const {data,error}=await mustDb().auth.signInWithPassword({email,password});if(error)throw error;return data;}
+export async function signInGoogle(){const {error}=await mustDb().auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname,queryParams:{access_type:'offline',prompt:'select_account'}}});if(error)throw error;}
+export async function signOut(){const {error}=await mustDb().auth.signOut();if(error)throw error;}
+export async function user(){const {data,error}=await mustDb().auth.getUser();if(error)throw error;return data.user;}
+export async function ensureProfile(shopName='') {
+  const u=await user(); const {data,error}=await mustDb().from('reseller_profiles').select('*').eq('user_id',u.id).maybeSingle();
+  if(error)throw error; if(data)return data;
+  const name=(shopName||u.user_metadata?.shop_name||'').trim(); if(!name)return null;
+  const {data:created,error:insertError}=await mustDb().from('reseller_profiles').insert({user_id:u.id,shop_name:name,email:u.email}).select().single();
+  if(insertError)throw insertError; await log('Compte revendeur créé'); return created;
+}
+export async function updateShopName(shopName){const u=await user();const {data,error}=await mustDb().from('reseller_profiles').update({shop_name:shopName.trim(),updated_at:new Date().toISOString()}).eq('user_id',u.id).select().single();if(error)throw error;await log('Nom de la boutique modifié');return data;}
+export async function loadData(){
+ const d=mustDb(); const [profile,clients,devices,logs]=await Promise.all([
+  d.from('reseller_profiles').select('*').single(),
+  d.from('clients').select('*').order('created_at',{ascending:false}),
+  d.from('devices').select('*').order('created_at',{ascending:false}),
+  d.from('activity_logs').select('*').order('created_at',{ascending:false}).limit(100)
+ ]);
+ for(const r of [profile,clients,devices,logs])if(r.error)throw r.error;
+ return {profile:profile.data,clients:clients.data,devices:devices.data,logs:logs.data};
+}
+export async function addClient({name,group}){const u=await user();const {data,error}=await mustDb().from('clients').insert({user_id:u.id,name:name.trim(),group_name:(group||'').trim()}).select().single();if(error)throw error;await log('Client ajouté : '+data.name);return data;}
+export async function removeClient(id){const {error}=await mustDb().from('clients').delete().eq('id',id);if(error)throw error;await log('Client supprimé');}
+export async function addDevice({name,platform,clientId,note}){const u=await user();const {data,error}=await mustDb().from('devices').insert({user_id:u.id,name:name.trim(),platform,client_id:clientId||null,note:(note||'').trim()}).select().single();if(error)throw error;await log('Appareil enregistré : '+data.name);return data;}
+export async function removeDevice(id){const {error}=await mustDb().from('devices').delete().eq('id',id);if(error)throw error;await log('Appareil retiré');}
+export async function log(action){if(!db)return;const u=await user();const {error}=await db.from('activity_logs').insert({user_id:u.id,action});if(error)throw error;}

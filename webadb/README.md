@@ -14,3 +14,8 @@ src/i18n.js         Textes EN / FR / HE / YI
 src/legal.js        Conditions d'utilisation
 public/yidream.apk  Ajouté automatiquement par le workflow (non versionné)
 ```
+
+
+## Espace d’administration
+
+Le registre des comptes, clients et appareils est enregistré dans le stockage local du navigateur. Les fiches d’appareils sont saisies manuellement et ne prouvent pas une connexion ni une synchronisation à distance. Le configurateur Android peut toutefois appliquer des réglages au téléphone connecté en USB via WebADB. Cette interface ne fournit pas d’authentification serveur ni de gestion MDM cloud.

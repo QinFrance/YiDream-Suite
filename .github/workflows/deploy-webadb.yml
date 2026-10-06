@@ -35,8 +35,8 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Configurer le SDK Android
-        uses: android-actions/setup-android@v3
+      - name: Accepter les licences du SDK Android préinstallé
+        run: yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
 
       - name: Générer le gradle wrapper
         run: gradle wrapper --gradle-version 8.7

@@ -2,11 +2,12 @@ import * as cloud from './cloud-admin.js';
 import logoUrl from '../assets/yidream-logo.png';
 const $=(s,r=document)=>r.querySelector(s), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const app=$('#app');
+const withTimeout=(promise,label='connexion',ms=15000)=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error(`Le chargement de ${label} prend trop de temps. Vérifiez votre connexion puis réessayez.`)),ms))]);
 document.addEventListener('click',e=>{if(e.target.closest('.account-box'))return;const m=$('#accountMenu'),b=$('#accountToggle');if(m)m.classList.add('hidden');if(b)b.setAttribute('aria-expanded','false')});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){const m=$('#accountMenu'),b=$('#accountToggle');if(m)m.classList.add('hidden');if(b)b.setAttribute('aria-expanded','false')}}); let state={session:null,data:null,page:'dashboard',deviceQuery:'',clientQuery:'',tab:'Tous',platformLabel:'',platformMenus:{}}; const names={dashboard:'Vue d’ensemble',devices:'Appareils',clients:'Clients',activity:'Journal'};
 function message(msg){const n=$('#authError')||$('#message');if(n)n.textContent=msg}
 function notify(text){const n=document.createElement('div');n.textContent=text;n.style='position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#102448;color:#fff;padding:11px 16px;border-radius:999px;z-index:20';document.body.append(n);setTimeout(()=>n.remove(),2200)}
-async function refresh(){state.data=await cloud.loadData();render()}
+async function refresh(){state.data=await withTimeout(cloud.loadData(),'des appareils et clients');render()}
 function authScreen(mode='login',error=''){
  const register=mode==='register';
  app.innerHTML=`<div class="auth-wrap"><section class="auth"><a href="./" class="brand" style="padding:0 0 20px"><img src="${logoUrl}" alt=""> YiDream <span style="color:#73819a;font-weight:500">Suite</span></a><h1>${register?'Créer votre compte revendeur':'Connexion revendeur'}</h1><p>${register?'Créez votre espace sécurisé pour gérer votre parc.':'Retrouvez vos clients et appareils dans votre espace.'}</p>
@@ -88,8 +89,8 @@ function renderClients(c,d){
 function renderActivity(c,d){c.innerHTML=head('Journal d’activité','Actions enregistrées dans votre espace.')+`<section class="panel table-wrap">${d.logs.length?`<table class="table"><thead><tr><th>Action</th><th>Date</th></tr></thead><tbody>${d.logs.map(x=>`<tr><td>${esc(x.action)}</td><td>${new Date(x.created_at).toLocaleString('fr-FR')}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Aucune activité pour le moment.</div>'}</section>`}
 async function start(){
  if(!cloud.configured){app.innerHTML='<div class="auth-wrap"><section class="auth"><h1>Connexion à configurer</h1><p>YiDream Suite attend la configuration Supabase. Le site ne crée pas de comptes locaux.</p><div class="notice">La connexion au compte utilise Supabase. Si Google est refusé, activez le fournisseur dans Authentication → Providers → Google et vérifiez les URL de retour autorisées.</div><a class="button" style="display:block;text-align:center;margin-top:14px" href="./">Retour</a></section></div>';return}
- state.session=await cloud.session();
+ state.session=await withTimeout(cloud.session(),'la session revendeur');
  if(!state.session){authScreen();return}
- try{let p=await cloud.ensureProfile();if(!p){onboarding();return}await refresh()}catch(e){app.innerHTML='<div class="auth-wrap"><section class="auth"><h1>Impossible de charger votre espace</h1><p>'+esc(errorText(e))+'</p><button class="button" onclick="location.reload()">Réessayer</button></section></div>'}
+ try{let p=await withTimeout(cloud.ensureProfile(),'le profil revendeur');if(!p){onboarding();return}await refresh()}catch(e){app.innerHTML='<div class="auth-wrap"><section class="auth"><h1>Impossible de charger votre espace</h1><p>'+esc(errorText(e))+'</p><button class="button" onclick="location.reload()">Réessayer</button></section></div>'}
 }
-if(cloud.configured)cloud.session().then(s=>{state.session=s;if(s)start();else authScreen('login',oauthErrorFromUrl())}).catch(e=>authScreen('login',errorText(e)));else start();
+if(cloud.configured)withTimeout(cloud.session(),'la session revendeur').then(s=>{state.session=s;if(s)start();else authScreen('login',oauthErrorFromUrl())}).catch(e=>authScreen('login',errorText(e)));else start();

@@ -404,7 +404,7 @@ function applyLanguage(){
 
 function openInfo(){launchApp('Info','About YiDream')}
 function launchApp(name,section){
- if(name==='admin'){ location.href='./admin.html'; return; }
+ if(name==='Admin'){ location.href='./admin.html'; return; }
  currentApp=name; currentSection=section||apps[name].nav[0];
  const overlay=document.getElementById('appOverlay');
  const win=overlay.querySelector('.app-window');

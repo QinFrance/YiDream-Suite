@@ -1,5 +1,5 @@
-const URL = import.meta.env.VITE_SUPABASE_URL || '';
-const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const URL = import.meta.env.VITE_SUPABASE_URL || 'https://jqrznghqwdjbizjehzrm.supabase.co';
+const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_YG9zgjQ5Y56WiBtKdJMQvA_-UBAFv9B';
 const clientLib = window.supabase;
 let db = null;
 

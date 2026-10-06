@@ -14,7 +14,7 @@ function authScreen(mode='login',error=''){
  <button id="submit" class="button primary">${register?'Créer mon compte':'Se connecter'}</button><div class="or">ou</div><button id="google" class="button google-button"><span class="google-mark" aria-hidden="true">G</span>Continuer avec Google</button>
  <p style="font-size:11px;margin:18px 0 0;text-align:center">${register?'Déjà inscrit ?':'Nouveau revendeur ?'} <button class="link" id="swap">${register?'Se connecter':'Créer un compte'}</button></p></section></div>`;
  $('#swap').onclick=()=>authScreen(register?'login':'register');
- $('#google').onclick=async()=>{try{await cloud.signInGoogle()}catch(e){authScreen(mode,e.message)}};
+ $('#google').onclick=async()=>{const b=$('#google');b.disabled=true;b.textContent='Redirection vers Google…';try{await cloud.signInGoogle()}catch(e){authScreen(mode,errorText(e))}};
  $('#submit').onclick=async()=>{
   const email=$('#email').value.trim(),password=$('#password').value;
   if(register&&password!==$('#confirm').value){message('Les mots de passe ne correspondent pas.');return}
@@ -26,7 +26,8 @@ function authScreen(mode='login',error=''){
   }catch(e){b.disabled=false;b.textContent=register?'Créer mon compte':'Se connecter';message(errorText(e))}
  };
 }
-function errorText(e){const m=e?.message||'';if(/Invalid login credentials/i.test(m))return 'Adresse e-mail ou mot de passe incorrect.';if(/Email not confirmed/i.test(m))return 'Confirmez votre adresse e-mail avant de vous connecter.';if(/provider.*not enabled|unsupported provider/i.test(m))return 'La connexion Google doit être activée dans Supabase Auth → Providers → Google avec des identifiants OAuth Google.';if(/redirect.*(url|uri)|not allowed/i.test(m))return 'Cette adresse de retour n’est pas autorisée dans Supabase Auth → URL Configuration.';return m||'Une erreur est survenue.'}
+function errorText(e){const m=typeof e==='string'?e:(e?.message||'');if(/Invalid login credentials/i.test(m))return 'Adresse e-mail ou mot de passe incorrect.';if(/Email not confirmed/i.test(m))return 'Confirmez votre adresse e-mail avant de vous connecter.';if(/provider.*not enabled|unsupported provider/i.test(m))return 'La connexion Google doit être activée dans Supabase Auth → Providers → Google avec des identifiants OAuth Google.';if(/redirect_uri_mismatch|redirect URI mismatch/i.test(m))return 'Google refuse l’adresse de retour. Vérifiez l’URI de rappel configurée dans Google Cloud.';if(/invalid_client|unauthorized_client|client authentication failed/i.test(m))return 'Google refuse l’identifiant OAuth. Vérifiez le Client ID et le Client Secret dans Supabase.';if(/redirect.*(url|uri)|not allowed/i.test(m))return 'Cette adresse de retour n’est pas autorisée dans Supabase Auth → URL Configuration.';return m||'Une erreur est survenue.'}
+function oauthErrorFromUrl(){const p=new URLSearchParams(location.search);const m=p.get('error_description')||p.get('error_code')||p.get('error');return m?errorText(m):''}
 async function onboarding(error=''){
  app.innerHTML=`<div class="auth-wrap"><section class="auth"><a href="./" class="brand" style="padding:0 0 20px"><img src="./assets/yidream-logo.png" alt=""> YiDream <span style="color:#73819a;font-weight:500">Suite</span></a><h1>Votre espace revendeur</h1><p>Indiquez le nom de votre boutique pour terminer la création de l’espace.</p><div id="authError" class="msg">${esc(error)}</div><div class="field"><label>Nom de la boutique ou entreprise</label><input id="shop" autocomplete="organization"></div><button class="button primary" id="save">Continuer</button><button class="link" id="logout" style="display:block;margin:15px auto 0">Se déconnecter</button></section></div>`;
  $('#logout').onclick=()=>cloud.signOut();$('#save').onclick=async()=>{try{const p=await cloud.ensureProfile($('#shop').value);if(!p){$('#authError').textContent='Saisissez le nom de votre entreprise.';return}await refresh()}catch(e){$('#authError').textContent=errorText(e)}}
@@ -82,4 +83,4 @@ async function start(){
  if(!state.session){authScreen();return}
  try{let p=await cloud.ensureProfile();if(!p){onboarding();return}await refresh()}catch(e){app.innerHTML='<div class="auth-wrap"><section class="auth"><h1>Impossible de charger votre espace</h1><p>'+esc(errorText(e))+'</p><button class="button" onclick="location.reload()">Réessayer</button></section></div>'}
 }
-if(cloud.configured)cloud.session().then(s=>{state.session=s;if(s)start();else authScreen()}).catch(e=>authScreen('login',errorText(e)));else start();
+if(cloud.configured)cloud.session().then(s=>{state.session=s;if(s)start();else authScreen('login',oauthErrorFromUrl())}).catch(e=>authScreen('login',errorText(e)));else start();

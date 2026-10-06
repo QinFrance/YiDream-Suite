@@ -16,7 +16,7 @@ export async function signUp({shopName,email,password}) {
   if(error) throw error; return data;
 }
 export async function signIn({email,password}){const {data,error}=await mustDb().auth.signInWithPassword({email,password});if(error)throw error;return data;}
-export async function signInGoogle(){const {error}=await mustDb().auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname,queryParams:{access_type:'offline',prompt:'select_account'}}});if(error)throw error;}
+export async function signInGoogle(){const {data,error}=await mustDb().auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname,queryParams:{access_type:'offline',prompt:'select_account'},skipBrowserRedirect:true}});if(error)throw error;if(!data?.url)throw new Error('Supabase n’a pas renvoyé de lien Google. Vérifiez que le fournisseur Google est activé.');window.location.assign(data.url);}
 export async function signOut(){const {error}=await mustDb().auth.signOut();if(error)throw error;}
 export async function user(){const {data,error}=await mustDb().auth.getUser();if(error)throw error;return data.user;}
 export async function ensureProfile(shopName='') {

@@ -89,8 +89,12 @@ function renderClients(c,d){
 function renderActivity(c,d){c.innerHTML=head('Journal d’activité','Actions enregistrées dans votre espace.')+`<section class="panel table-wrap">${d.logs.length?`<table class="table"><thead><tr><th>Action</th><th>Date</th></tr></thead><tbody>${d.logs.map(x=>`<tr><td>${esc(x.action)}</td><td>${new Date(x.created_at).toLocaleString('fr-FR')}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Aucune activité pour le moment.</div>'}</section>`}
 async function start(){
  if(!cloud.configured){app.innerHTML='<div class="auth-wrap"><section class="auth"><h1>Connexion à configurer</h1><p>YiDream Suite attend la configuration Supabase. Le site ne crée pas de comptes locaux.</p><div class="notice">La connexion au compte utilise Supabase. Si Google est refusé, activez le fournisseur dans Authentication → Providers → Google et vérifiez les URL de retour autorisées.</div><a class="button" style="display:block;text-align:center;margin-top:14px" href="./">Retour</a></section></div>';return}
- state.session=await withTimeout(cloud.session(),'la session revendeur');
- if(!state.session){authScreen();return}
- try{let p=await withTimeout(cloud.ensureProfile(),'le profil revendeur');if(!p){onboarding();return}await refresh()}catch(e){app.innerHTML='<div class="auth-wrap"><section class="auth"><h1>Impossible de charger votre espace</h1><p>'+esc(errorText(e))+'</p><button class="button" onclick="location.reload()">Réessayer</button></section></div>'}
+ try{
+  state.session=await withTimeout(cloud.session(),'la session revendeur');
+  if(!state.session){authScreen();return}
+  let p=await withTimeout(cloud.ensureProfile(),'le profil revendeur');
+  if(!p){onboarding();return}
+  await refresh();
+ }catch(e){app.innerHTML='<div class="auth-wrap"><section class="auth"><h1>Impossible de charger votre espace</h1><p>'+esc(errorText(e))+'</p><button class="button" onclick="location.reload()">Réessayer</button></section></div>'}
 }
 if(cloud.configured)withTimeout(cloud.session(),'la session revendeur').then(s=>{state.session=s;if(s)start();else authScreen('login',oauthErrorFromUrl())}).catch(e=>authScreen('login',errorText(e)));else start();

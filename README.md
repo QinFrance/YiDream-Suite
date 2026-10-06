@@ -20,13 +20,13 @@ Fusion du design **Suite** (Admin, Android, iOS, Info) avec la logique du config
 - **Conditions d'utilisation** à accepter au premier chargement (recopie d'une phrase), consultables dans Info → Legal.
 - **Verrou d'origine** : le site refuse de fonctionner hors des adresses listées dans `webadb/src/config.js`.
 - Langues EN / FR / HE / YI, thème clair/sombre.
-- **YiDream Admin** (flotte, clients, dashboard) et **iOS** restent des **maquettes** : aucune donnée réelle, pas de backend.
+- **YiDream Admin** : tableau de bord revendeur avec comptes e-mail/mot de passe et Google via Supabase ; les fiches appareils/clients sont stockées en base et isolées par compte avec RLS. Le service doit être configuré suivant [`webadb/supabase/SETUP.md`](webadb/supabase/SETUP.md).\n- **iOS**, macOS et Windows : l’interface indique les pistes, mais les commandes MDM ne sont pas encore implémentées.
 
 ## Mise en ligne
 
 1. Pousse ce dossier sur la branche `main` (dépôt `QinFrance/YiDream` pour garder l'adresse actuelle).
 2. `Settings → Pages → Source : GitHub Actions`.
-3. Le workflow compile l'APK puis publie le site : `https://qinfrance.github.io/YiDream/`.
+3. Le workflow compile l'APK et les deux pages puis publie `https://qinfrance.github.io/YiDream-Suite/`. Le tableau de bord revendeur s’ouvre avec la tuile Admin ; le configurateur USB Android reste dans YiDream Suite.
 
 Si tu publies sous un autre nom de dépôt, ajoute son chemin dans `allowedSites` (`webadb/src/config.js`), sinon l'écran « Site non autorisé » s'affiche.
 

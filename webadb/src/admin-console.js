@@ -73,5 +73,4 @@ async function start(){
  if(!state.session){authScreen();return}
  try{let p=await cloud.ensureProfile();if(!p){onboarding();return}await refresh()}catch(e){app.innerHTML='<div class="auth-wrap"><section class="auth"><h1>Impossible de charger votre espace</h1><p>'+esc(errorText(e))+'</p><button class="button" onclick="location.reload()">Réessayer</button></section></div>'}
 }
-const stop=cloud.onAuthChange(async s=>{state.session=s;if(s)await start();else authScreen()});
 if(cloud.configured)cloud.session().then(s=>{state.session=s;if(s)start();else authScreen()}).catch(e=>authScreen('login',errorText(e)));else start();

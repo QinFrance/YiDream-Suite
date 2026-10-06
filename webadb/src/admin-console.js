@@ -1,7 +1,9 @@
 import * as cloud from './cloud-admin.js';
 import logoUrl from '../assets/yidream-logo.png';
 const $=(s,r=document)=>r.querySelector(s), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const app=$('#app'); let state={session:null,data:null,page:'dashboard',deviceQuery:'',clientQuery:'',tab:'Tous'}; const names={dashboard:'Vue d’ensemble',devices:'Appareils',clients:'Clients',activity:'Journal'};
+const app=$('#app');
+document.addEventListener('click',e=>{if(e.target.closest('.account-box'))return;const m=$('#accountMenu'),b=$('#accountToggle');if(m)m.classList.add('hidden');if(b)b.setAttribute('aria-expanded','false')});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const m=$('#accountMenu'),b=$('#accountToggle');if(m)m.classList.add('hidden');if(b)b.setAttribute('aria-expanded','false')}}); let state={session:null,data:null,page:'dashboard',deviceQuery:'',clientQuery:'',tab:'Tous',platformLabel:'',platformMenus:{}}; const names={dashboard:'Vue d’ensemble',devices:'Appareils',clients:'Clients',activity:'Journal'};
 function message(msg){const n=$('#authError')||$('#message');if(n)n.textContent=msg}
 function notify(text){const n=document.createElement('div');n.textContent=text;n.style='position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#102448;color:#fff;padding:11px 16px;border-radius:999px;z-index:20';document.body.append(n);setTimeout(()=>n.remove(),2200)}
 async function refresh(){state.data=await cloud.loadData();render()}

@@ -4,7 +4,7 @@ YiDream Suite sépare le portail public, la candidature, la console propriétair
 
 ## Installer le schéma
 
-Dans le projet Supabase, ouvre **SQL Editor** et exécute les migrations dans l’ordre :
+Dans le projet Supabase, ouvre **SQL Editor**. Si le schéma revendeur n’a pas encore été installé, exécute les deux migrations dans l’ordre. S’il est déjà en place, exécute seulement la nouvelle migration administrateur :
 
 1. `20261006000000_reseller_admin.sql`
 2. `20261007000000_owner_admin_portal.sql`

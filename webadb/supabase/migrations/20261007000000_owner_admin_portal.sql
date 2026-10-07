@@ -64,59 +64,58 @@ drop policy if exists "reseller owns own clients" on public.clients;
 drop policy if exists "reseller owns own devices" on public.devices;
 drop policy if exists "reseller owns own activity" on public.activity_logs;
 
-create policy "profile visible to account or platform admin"
+create policy "profile visible to account or owner"
   on public.reseller_profiles for select to authenticated
-  using (user_id = (select auth.uid()) or public.is_platform_admin());
-create policy "platform admins manage stores"
+  using (user_id = (select auth.uid()) or public.is_platform_owner());
+create policy "owner manages stores"
   on public.reseller_profiles for all to authenticated
-  using (public.is_platform_admin()) with check (public.is_platform_admin());
+  using (public.is_platform_owner()) with check (public.is_platform_owner());
 
-create policy "clients visible to account or platform admin"
+create policy "clients visible to approved store or owner"
   on public.clients for select to authenticated
-  using (user_id = (select auth.uid()) or public.is_platform_admin());
-create policy "account or platform admin creates clients"
+  using (public.is_platform_owner() or (user_id = (select auth.uid()) and public.is_platform_admin()));
+create policy "approved store or owner creates clients"
   on public.clients for insert to authenticated
-  with check (user_id = (select auth.uid()) or public.is_platform_admin());
-create policy "account or platform admin updates clients"
+  with check (public.is_platform_owner() or (user_id = (select auth.uid()) and public.is_platform_admin()));
+create policy "approved store or owner updates clients"
   on public.clients for update to authenticated
-  using (user_id = (select auth.uid()) or public.is_platform_admin())
-  with check (user_id = (select auth.uid()) or public.is_platform_admin());
-create policy "account or platform admin deletes clients"
+  using (public.is_platform_owner() or (user_id = (select auth.uid()) and public.is_platform_admin()))
+  with check (public.is_platform_owner() or (user_id = (select auth.uid()) and public.is_platform_admin()));
+create policy "approved store or owner deletes clients"
   on public.clients for delete to authenticated
-  using (user_id = (select auth.uid()) or public.is_platform_admin());
+  using (public.is_platform_owner() or (user_id = (select auth.uid()) and public.is_platform_admin()));
 
-create policy "devices visible to account or platform admin"
+create policy "devices visible to approved store or owner"
   on public.devices for select to authenticated
-  using (user_id = (select auth.uid()) or public.is_platform_admin());
-create policy "account creates unconfigured devices"
+  using (public.is_platform_owner() or (user_id = (select auth.uid()) and public.is_platform_admin()));
+create policy "approved store creates unconfigured devices"
   on public.devices for insert to authenticated
   with check (
-    (user_id = (select auth.uid()) and configuration_status = 'needs_configuration'
+    public.is_platform_owner()
+    or (user_id = (select auth.uid()) and public.is_platform_admin()
+      and configuration_status = 'needs_configuration'
       and configured_by is null and configured_at is null)
-    or public.is_platform_admin()
   );
-create policy "platform admins or account updates pending device details"
+create policy "approved store or owner updates device details"
   on public.devices for update to authenticated
-  using (user_id = (select auth.uid()) or public.is_platform_admin())
-  with check (
-    public.is_platform_admin()
-    or (user_id = (select auth.uid()) and configuration_status = 'needs_configuration'
-      and configured_by is null and configured_at is null)
-  );
-create policy "account or platform admin deletes devices"
+  using (public.is_platform_owner() or (user_id = (select auth.uid()) and public.is_platform_admin()))
+  with check (public.is_platform_owner() or (user_id = (select auth.uid()) and public.is_platform_admin()
+      and configuration_status = 'needs_configuration'
+      and configured_by is null and configured_at is null));
+create policy "approved store or owner deletes devices"
   on public.devices for delete to authenticated
-  using (user_id = (select auth.uid()) or public.is_platform_admin());
+  using (public.is_platform_owner() or (user_id = (select auth.uid()) and public.is_platform_admin()));
 
-create policy "activity visible to account or platform admin"
+create policy "activity visible to approved account or owner"
   on public.activity_logs for select to authenticated
-  using (user_id = (select auth.uid()) or public.is_platform_admin());
-create policy "account or platform admin adds activity"
+  using (public.is_platform_owner() or (user_id = (select auth.uid()) and public.is_platform_admin()));
+create policy "approved account or owner adds activity"
   on public.activity_logs for insert to authenticated
-  with check (user_id = (select auth.uid()) or public.is_platform_admin());
+  with check (public.is_platform_owner() or (user_id = (select auth.uid()) and public.is_platform_admin()));
 
 create policy "account reads own application or platform admin reads all"
   on public.admin_applications for select to authenticated
-  using (user_id = (select auth.uid()) or public.is_platform_admin());
+  using (user_id = (select auth.uid()) or public.is_platform_owner());
 create policy "account submits own application"
   on public.admin_applications for insert to authenticated
   with check (user_id = (select auth.uid()) and status = 'pending');

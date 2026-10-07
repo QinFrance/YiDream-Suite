@@ -1,12 +1,15 @@
 const URL = import.meta.env.VITE_SUPABASE_URL || 'https://jqrznghqwdjbizjehzrm.supabase.co';
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_YG9zgjQ5Y56WiBtKdJMQvA_-UBAFv9B';
-const clientLib = await (window.supabaseReady || Promise.resolve(window.supabase));
 let db = null;
-
-export const configured = Boolean(URL && KEY && clientLib?.createClient);
-if (configured) db = clientLib.createClient(URL, KEY, {
-  auth: { flowType: 'pkce', detectSessionInUrl: true, autoRefreshToken: true, persistSession: true }
-});
+export let configured = false;
+export const ready = (async () => {
+  const clientLib = await (window.supabaseReady || Promise.resolve(window.supabase));
+  configured = Boolean(URL && KEY && clientLib?.createClient);
+  if (configured) db = clientLib.createClient(URL, KEY, {
+    auth: { flowType: 'pkce', detectSessionInUrl: true, autoRefreshToken: true, persistSession: true }
+  });
+  return configured;
+})();
 
 const mustDb = () => { if (!db) throw new Error('Supabase n’est pas configuré.'); return db; };
 export async function session(){ if(!db) return null; const {data,error}=await db.auth.getSession(); if(error) throw error; return data.session; }

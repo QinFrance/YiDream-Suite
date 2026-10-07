@@ -6,6 +6,7 @@ create extension if not exists pgcrypto;
 create table if not exists public.platform_admins (
   user_id uuid primary key references auth.users(id) on delete cascade,
   role text not null check (role in ('owner', 'admin')),
+  email text not null default '',
   created_at timestamptz not null default now(),
   created_by uuid references auth.users(id) on delete set null
 );
@@ -14,6 +15,7 @@ create table if not exists public.admin_applications (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   store_name text not null,
+  email text not null default '',
   reason text not null default '',
   status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
   created_at timestamptz not null default now(),
@@ -54,6 +56,8 @@ revoke all on function public.is_platform_admin() from public;
 revoke all on function public.is_platform_owner() from public;
 grant execute on function public.is_platform_admin() to authenticated;
 grant execute on function public.is_platform_owner() to authenticated;
+revoke all on public.platform_admins, public.admin_applications from anon;
+grant select, insert, update, delete on public.platform_admins, public.admin_applications to authenticated;
 
 drop policy if exists "reseller owns own profile" on public.reseller_profiles;
 drop policy if exists "reseller owns own clients" on public.clients;
@@ -157,12 +161,12 @@ begin
     values (application.user_id, application.store_name, coalesce(account_email, ''))
     on conflict (user_id) do update set shop_name = excluded.shop_name, email = excluded.email, updated_at = now();
 
-    insert into public.platform_admins(user_id, role, created_by)
-    values (application.user_id, 'admin', auth.uid())
-    on conflict (user_id) do update set role = 'admin';
+    insert into public.platform_admins(user_id, role, email, created_by)
+    values (application.user_id, 'admin', coalesce(account_email, ''), auth.uid())
+    on conflict (user_id) do update set role = 'admin', email = excluded.email;
 
     update public.admin_applications
-    set status = 'approved', reviewed_at = now(), reviewed_by = auth.uid()
+    set status = 'approved', email = coalesce(account_email, ''), reviewed_at = now(), reviewed_by = auth.uid()
     where id = application.id;
   else
     update public.admin_applications
@@ -184,9 +188,9 @@ begin
   end if;
 
   if make_admin then
-    insert into public.platform_admins(user_id, role, created_by)
-    values (target_user_id, 'admin', auth.uid())
-    on conflict (user_id) do update set role = 'admin', created_by = auth.uid();
+    insert into public.platform_admins(user_id, role, email, created_by)
+    select target_user_id, 'admin', coalesce(email, ''), auth.uid() from auth.users where id = target_user_id
+    on conflict (user_id) do update set role = 'admin', email = excluded.email, created_by = auth.uid();
   else
     delete from public.platform_admins where user_id = target_user_id and role = 'admin';
   end if;
@@ -212,6 +216,30 @@ begin
   end if;
 end;
 $$;
+
+
+-- Protect the configuration attestation from direct edits by store admins.
+create or replace function public.guard_device_configuration()
+returns trigger language plpgsql set search_path = ''
+as $
+begin
+  if tg_op = 'INSERT' then
+    if new.configuration_status = 'configured' and not public.is_platform_owner() then
+      raise exception 'Seul le propriétaire YiDream peut valider la configuration.';
+    end if;
+  elsif (new.configuration_status is distinct from old.configuration_status
+      or new.configured_by is distinct from old.configured_by
+      or new.configured_at is distinct from old.configured_at)
+      and not public.is_platform_owner() then
+    raise exception 'Seul le propriétaire YiDream peut modifier la validation de configuration.';
+  end if;
+  return new;
+end;
+$;
+drop trigger if exists devices_guard_configuration on public.devices;
+create trigger devices_guard_configuration
+before insert or update on public.devices
+for each row execute function public.guard_device_configuration();
 
 grant execute on function public.review_admin_application(uuid, boolean) to authenticated;
 grant execute on function public.set_platform_admin(uuid, boolean) to authenticated;

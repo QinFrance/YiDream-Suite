@@ -56,7 +56,7 @@ export async function platformRole(){
 export async function submitAdminApplication({storeName,reason}){
   const u=await user();
   const {data,error}=await mustDb().from('admin_applications').insert({
-    user_id:u.id,store_name:storeName.trim(),reason:(reason||'').trim()
+    user_id:u.id,store_name:storeName.trim(),email:u.email||'',reason:(reason||'').trim()
   }).select().single();
   if(error)throw error;
   return data;
@@ -73,7 +73,7 @@ export async function loadOwnerData(){
   const d=mustDb();
   const [applications,admins,stores,clients,devices,logs]=await Promise.all([
     d.from('admin_applications').select('*').order('created_at',{ascending:false}),
-    d.from('platform_admins').select('user_id,role,created_at').order('created_at',{ascending:false}),
+    d.from('platform_admins').select('user_id,role,email,created_at').order('created_at',{ascending:false}),
     d.from('reseller_profiles').select('*').order('created_at',{ascending:false}),
     d.from('clients').select('*').order('created_at',{ascending:false}),
     d.from('devices').select('*').order('created_at',{ascending:false}),
@@ -92,5 +92,10 @@ export async function setPlatformAdmin(userId,makeAdmin){
 }
 export async function setDeviceConfigured(id,configured){
   const {error}=await mustDb().rpc('set_device_configured',{target_device_id:id,is_configured:configured});
+  if(error)throw error;
+}
+
+export async function updateStoreName(userId,shopName){
+  const {error}=await mustDb().from('reseller_profiles').update({shop_name:shopName.trim(),updated_at:new Date().toISOString()}).eq('user_id',userId);
   if(error)throw error;
 }

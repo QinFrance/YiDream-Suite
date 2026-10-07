@@ -1,11 +1,11 @@
-const URL = import.meta.env.VITE_SUPABASE_URL || 'https://jqrznghqwdjbizjehzrm.supabase.co';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://jqrznghqwdjbizjehzrm.supabase.co';
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_YG9zgjQ5Y56WiBtKdJMQvA_-UBAFv9B';
 let db = null;
 export let configured = false;
 export const ready = (async () => {
   const clientLib = await (window.supabaseReady || Promise.resolve(window.supabase));
-  configured = Boolean(URL && KEY && clientLib?.createClient);
-  if (configured) db = clientLib.createClient(URL, KEY, {
+  configured = Boolean(SUPABASE_URL && KEY && clientLib?.createClient);
+  if (configured) db = clientLib.createClient(SUPABASE_URL, KEY, {
     auth: { flowType: 'pkce', detectSessionInUrl: true, autoRefreshToken: true, persistSession: true }
   });
   return configured;

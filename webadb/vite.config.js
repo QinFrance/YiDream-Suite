@@ -13,6 +13,7 @@ export default defineConfig({
       input: {
         suite: resolve(root, 'index.html'),
         admin: resolve(root, 'admin.html'),
+        adminShort: resolve(root, 'admin/index.html'),
       },
     },
   },

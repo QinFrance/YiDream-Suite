@@ -31,11 +31,11 @@ export async function ensureProfile(shopName='') {
 }
 export async function updateShopName(shopName){const u=await user();const {data,error}=await mustDb().from('reseller_profiles').update({shop_name:shopName.trim(),updated_at:new Date().toISOString()}).eq('user_id',u.id).select().single();if(error)throw error;await log('Nom de la boutique modifié');return data;}
 export async function loadData(){
- const d=mustDb(); const [profile,clients,devices,logs]=await Promise.all([
-  d.from('reseller_profiles').select('*').single(),
-  d.from('clients').select('*').order('created_at',{ascending:false}),
-  d.from('devices').select('*').order('created_at',{ascending:false}),
-  d.from('activity_logs').select('*').order('created_at',{ascending:false}).limit(100)
+ const d=mustDb(), u=await user(); const [profile,clients,devices,logs]=await Promise.all([
+  d.from('reseller_profiles').select('*').eq('user_id',u.id).single(),
+  d.from('clients').select('*').eq('user_id',u.id).order('created_at',{ascending:false}),
+  d.from('devices').select('*').eq('user_id',u.id).order('created_at',{ascending:false}),
+  d.from('activity_logs').select('*').eq('user_id',u.id).order('created_at',{ascending:false}).limit(100)
  ]);
  for(const r of [profile,clients,devices,logs])if(r.error)throw r.error;
  return {profile:profile.data,clients:clients.data,devices:devices.data,logs:logs.data};
@@ -45,3 +45,52 @@ export async function removeClient(id){const {error}=await mustDb().from('client
 export async function addDevice({name,platform,clientId,note}){const u=await user();const {data,error}=await mustDb().from('devices').insert({user_id:u.id,name:name.trim(),platform,client_id:clientId||null,note:(note||'').trim()}).select().single();if(error)throw error;await log('Appareil enregistré : '+data.name);return data;}
 export async function removeDevice(id){const {error}=await mustDb().from('devices').delete().eq('id',id);if(error)throw error;await log('Appareil retiré');}
 export async function log(action){if(!db)return;const u=await user();const {error}=await db.from('activity_logs').insert({user_id:u.id,action});if(error)throw error;}
+
+
+export async function platformRole(){
+  const u=await user();
+  const {data,error}=await mustDb().from('platform_admins').select('role').eq('user_id',u.id).maybeSingle();
+  if(error)throw error;
+  return data?.role||null;
+}
+export async function submitAdminApplication({storeName,reason}){
+  const u=await user();
+  const {data,error}=await mustDb().from('admin_applications').insert({
+    user_id:u.id,store_name:storeName.trim(),reason:(reason||'').trim()
+  }).select().single();
+  if(error)throw error;
+  return data;
+}
+export async function myAdminApplication(){
+  const u=await user();
+  const {data,error}=await mustDb().from('admin_applications').select('*').eq('user_id',u.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
+  if(error)throw error;
+  return data;
+}
+export async function loadOwnerData(){
+  const role=await platformRole();
+  if(role!=='owner')throw new Error('Accès propriétaire requis.');
+  const d=mustDb();
+  const [applications,admins,stores,clients,devices,logs]=await Promise.all([
+    d.from('admin_applications').select('*').order('created_at',{ascending:false}),
+    d.from('platform_admins').select('user_id,role,created_at').order('created_at',{ascending:false}),
+    d.from('reseller_profiles').select('*').order('created_at',{ascending:false}),
+    d.from('clients').select('*').order('created_at',{ascending:false}),
+    d.from('devices').select('*').order('created_at',{ascending:false}),
+    d.from('activity_logs').select('*').order('created_at',{ascending:false}).limit(100)
+  ]);
+  for(const r of [applications,admins,stores,clients,devices,logs])if(r.error)throw r.error;
+  return {applications:applications.data,admins:admins.data,stores:stores.data,clients:clients.data,devices:devices.data,logs:logs.data};
+}
+export async function reviewAdminApplication(id,approve){
+  const {error}=await mustDb().rpc('review_admin_application',{application_id:id,approve});
+  if(error)throw error;
+}
+export async function setPlatformAdmin(userId,makeAdmin){
+  const {error}=await mustDb().rpc('set_platform_admin',{target_user_id:userId,make_admin:makeAdmin});
+  if(error)throw error;
+}
+export async function setDeviceConfigured(id,configured){
+  const {error}=await mustDb().rpc('set_device_configured',{target_device_id:id,is_configured:configured});
+  if(error)throw error;
+}

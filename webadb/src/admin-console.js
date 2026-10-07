@@ -51,8 +51,8 @@ async function onboarding(error=''){
 }
 function pendingScreen(application){
  const status=application?.status==='rejected'?'Votre précédente candidature n’a pas été approuvée. Vous pouvez contacter YiDream pour en savoir plus.':application?.status==='approved'?'Les droits administrateur de ce compte ne sont plus actifs. Contactez le propriétaire YiDream pour rétablir l’accès.':'Votre candidature est en attente d’examen. Vous recevrez l’accès administrateur après approbation.';
- app.innerHTML=`<div class="auth-wrap"><section class="auth"><a href="${portalHomeHref()}" class="brand" style="padding:0 0 20px"><img src="${logoUrl}" alt=""> YiDream <span style="color:#73819a;font-weight:500">Suite</span></a><h1>Candidature enregistrée</h1><p>${esc(status)}</p><div class="notice">La connexion est active, mais les appareils, clients et outils de configuration restent verrouillés jusqu’à l’approbation.</div><button class="button" id="pendingLogout" style="margin-top:16px">Se déconnecter</button></section></div>`;
- $('#pendingLogout').onclick=async()=>{await cloud.signOut();state.session=null;publicPortal()};
+ app.innerHTML=`<div class="auth-wrap"><section class="auth"><a href="${portalHomeHref()}" class="brand" style="padding:0 0 20px"><img src="${logoUrl}" alt=""> YiDream <span style="color:#73819a;font-weight:500">Suite</span></a><h1>Candidature enregistrée</h1><p>${esc(status)}</p><div class="notice">La connexion est active, mais les appareils, clients et outils de configuration restent verrouillés jusqu’à l’approbation.</div>${application?.status==='rejected'?'<button class="button primary" id="pendingApply" style="margin-top:16px">Déposer une nouvelle candidature</button>':''}<button class="button" id="pendingLogout" style="margin-top:16px">Se déconnecter</button></section></div>`;
+ if($('#pendingApply'))$('#pendingApply').onclick=()=>onboarding();$('#pendingLogout').onclick=async()=>{await cloud.signOut();state.session=null;publicPortal()};
 }
 function shell(){
  const d=state.data;

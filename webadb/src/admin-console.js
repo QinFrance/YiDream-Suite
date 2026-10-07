@@ -50,7 +50,7 @@ async function onboarding(error=''){
  $('#save').onclick=async()=>{try{const storeName=$('#shop').value.trim();if(!storeName){$('#authError').textContent='Saisissez le nom de votre boutique ou organisation.';return}const a=await cloud.submitAdminApplication({storeName,reason:$('#reason').value});pendingScreen(a)}catch(e){$('#authError').textContent=errorText(e)}}
 }
 function pendingScreen(application){
- const status=application?.status==='rejected'?'Votre précédente candidature n’a pas été approuvée. Vous pouvez contacter YiDream pour en savoir plus.':'Votre candidature est en attente d’examen. Vous recevrez l’accès administrateur après approbation.';
+ const status=application?.status==='rejected'?'Votre précédente candidature n’a pas été approuvée. Vous pouvez contacter YiDream pour en savoir plus.':application?.status==='approved'?'Les droits administrateur de ce compte ne sont plus actifs. Contactez le propriétaire YiDream pour rétablir l’accès.':'Votre candidature est en attente d’examen. Vous recevrez l’accès administrateur après approbation.';
  app.innerHTML=`<div class="auth-wrap"><section class="auth"><a href="${portalHomeHref()}" class="brand" style="padding:0 0 20px"><img src="${logoUrl}" alt=""> YiDream <span style="color:#73819a;font-weight:500">Suite</span></a><h1>Candidature enregistrée</h1><p>${esc(status)}</p><div class="notice">La connexion est active, mais les appareils, clients et outils de configuration restent verrouillés jusqu’à l’approbation.</div><button class="button" id="pendingLogout" style="margin-top:16px">Se déconnecter</button></section></div>`;
  $('#pendingLogout').onclick=async()=>{await cloud.signOut();state.session=null;publicPortal()};
 }
@@ -152,12 +152,13 @@ async function start(){
     renderOwnerPortal();
     return;
   }
-  let p=await withTimeout(cloud.ensureProfile(),'le profil revendeur');
-  if(!p){
+  if(state.platformRole!=='admin'){
     const application=await withTimeout(cloud.myAdminApplication(),'votre candidature');
     if(application){pendingScreen(application);return}
     onboarding();return;
   }
+  let p=await withTimeout(cloud.ensureProfile(),'le profil revendeur');
+  if(!p){onboarding();return;}
   await refresh();
  }catch(e){app.innerHTML='<div class="auth-wrap"><section class="auth"><h1>Impossible de charger votre espace</h1><p>'+esc(errorText(e))+'</p><button class="button" onclick="location.reload()">Réessayer</button></section></div>'}
 }

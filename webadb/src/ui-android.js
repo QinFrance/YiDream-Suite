@@ -2,16 +2,13 @@
 import { YiDreamAdb, parseExtraPackages } from './adb.js';
 import { CONFIG } from './config.js';
 import { UI_STRINGS } from './i18n.js';
-import { sha256Hex, deriveIntermediateKey, deriveDailyCode, todayString, bytesToBase64 } from './crypto.js';
+import { deriveIntermediateKey, deriveDailyCode, todayString, bytesToBase64 } from './crypto.js';
 
 const client = new YiDreamAdb();
 const state = {
   blocking: { browsers: true, ai: true, social: true, store: true, extra: '' },
-  adminUnlocked: false,
   bundledApk: null,
 };
-const GATED = new Set(['Unlock & Apply', 'Advanced']);
-
 const lang = () => (window.getLang ? window.getLang() : 'en');
 const t = (k) => UI_STRINGS[lang()]?.[k] ?? UI_STRINGS.en[k] ?? k;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -210,23 +207,8 @@ const sections = {
   },
 };
 
-function lockScreen(c, name) {
-  c.innerHTML = `<div style="text-align:center;max-width:300px;margin:40px auto">
-    <div style="font-size:34px">🔒</div><h2>${esc(t('lock_title'))}</h2><div class="sub">${esc(t('lock_subtitle'))}</div>
-    <div class="field"><input type="password" id="lockPw" placeholder="${esc(t('lock_placeholder'))}"></div><br>
-    <button class="primary" id="btnUnlock">${esc(t('lock_button'))}</button>
-    <div class="small" id="lockErr" style="color:var(--red);margin-top:10px"></div></div>`;
-  const go = async () => {
-    if ((await sha256Hex($('lockPw').value)) === CONFIG.adminPasswordHash) { state.adminUnlocked = true; renderAndroid(c, name); }
-    else $('lockErr').textContent = t('lock_error');
-  };
-  $('btnUnlock').onclick = go;
-  $('lockPw').onkeydown = (e) => { if (e.key === 'Enter') go(); };
-}
-
 export function renderAndroid(c, name) {
   current = { c, s: name };
-  if (GATED.has(name) && !state.adminUnlocked) return lockScreen(c, name);
   (sections[name] || sections.Connect)(c);
   const d = $('btnDisc'); if (d && !d.onclick) d.onclick = async () => { await client.disconnect(); rerender(); };
 }

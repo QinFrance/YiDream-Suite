@@ -10,7 +10,6 @@ export const CONFIG = {
 
   // ⚠️ Simple verrou d'interface : ce hash est lisible par n'importe qui dans le code du site.
   // Ce n'est PAS une protection forte. Mot de passe par défaut : "changeme123" → CHANGE-LE.
-  adminPasswordHash: '494a715f7e9b4071aca61bac42ca858a309524e5864f0920030862a4ae7589be',
 
   // Le site refuse de fonctionner ailleurs que sur ces adresses.
   allowedSites: [

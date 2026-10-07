@@ -5,23 +5,29 @@ const app=$('#app');
 const suiteHomeHref=()=>location.pathname.endsWith('/admin/')?'../index.html':'./index.html';
 const withTimeout=(promise,label='connexion',ms=15000)=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error(`Le chargement de ${label} prend trop de temps. Vérifiez votre connexion puis réessayez.`)),ms))]);
 document.addEventListener('click',e=>{if(e.target.closest('.account-box'))return;const m=$('#accountMenu'),b=$('#accountToggle');if(m)m.classList.add('hidden');if(b)b.setAttribute('aria-expanded','false')});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){const m=$('#accountMenu'),b=$('#accountToggle');if(m)m.classList.add('hidden');if(b)b.setAttribute('aria-expanded','false')}}); let state={session:null,data:null,page:'dashboard',deviceQuery:'',clientQuery:'',tab:'Tous',platformLabel:'',platformMenus:{}}; const names={dashboard:'Vue d’ensemble',devices:'Appareils',clients:'Clients',activity:'Journal'};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const m=$('#accountMenu'),b=$('#accountToggle');if(m)m.classList.add('hidden');if(b)b.setAttribute('aria-expanded','false')}}); let state={session:null,data:null,page:'dashboard',deviceQuery:'',clientQuery:'',tab:'Tous',platformLabel:'',platformMenus:{},platformRole:null,ownerPage:'dashboard',ownerData:null}; const names={dashboard:'Vue d’ensemble',devices:'Appareils',clients:'Clients',activity:'Journal'};
 function message(msg){const n=$('#authError')||$('#message');if(n)n.textContent=msg}
 function notify(text){const n=document.createElement('div');n.textContent=text;n.style='position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#102448;color:#fff;padding:11px 16px;border-radius:999px;z-index:20';document.body.append(n);setTimeout(()=>n.remove(),2200)}
 async function refresh(){state.data=await withTimeout(cloud.loadData(),'des appareils et clients');render()}
+function portalHomeHref(){return location.pathname.endsWith('/admin/')?'../index.html':'./index.html'}
 function authScreen(mode='login',error=''){
  const register=mode==='register';
- app.innerHTML=`<div class="auth-wrap"><section class="auth"><a href="${suiteHomeHref()}" class="brand" style="padding:0 0 20px"><img src="${logoUrl}" alt=""> YiDream <span style="color:#73819a;font-weight:500">Suite</span></a><h1>${register?'Créer votre compte revendeur':'Connexion revendeur'}</h1><p>${register?'Créez votre espace sécurisé pour gérer votre parc.':'Retrouvez vos clients et appareils dans votre espace.'}</p>
+ app.innerHTML=`<div class="auth-wrap"><section class="auth"><button class="link" id="authBack" style="margin:0 0 12px;padding:0">← Retour à la présentation</button><a href="${portalHomeHref()}" class="brand" style="padding:0 0 20px"><img src="${logoUrl}" alt=""> YiDream <span style="color:#73819a;font-weight:500">Suite</span></a><h1>${register?'Demander un accès administrateur':'Connexion administrateur'}</h1><p>${register?'Créez votre compte puis envoyez votre candidature. L’accès sera activé après examen.':'Connectez-vous pour gérer les appareils et les comptes autorisés.'}</p>
  <div id="authError" class="msg">${esc(error)}</div>
- ${register?'<div class="field"><label>Nom de la boutique ou entreprise</label><input id="shop" autocomplete="organization"></div>':''}
+ ${register?'<div class="field"><label>Nom de la boutique ou organisation</label><input id="shop" autocomplete="organization"></div>':''}
  <div class="field"><label>Adresse e-mail</label><input id="email" type="email" autocomplete="email"></div><div class="field"><label>Mot de passe</label><input id="password" type="password" autocomplete="${register?'new-password':'current-password'}"></div>
  ${register?'<div class="field"><label>Confirmer le mot de passe</label><input id="confirm" type="password" autocomplete="new-password"></div>':''}
- <button id="submit" class="button primary">${register?'Créer mon compte':'Se connecter'}</button><div class="or">ou</div><button id="google" class="button google-button"><span class="google-mark" aria-hidden="true">G</span>Continuer avec Google</button>
- <p style="font-size:11px;margin:18px 0 0;text-align:center">${register?'Déjà inscrit ?':'Nouveau revendeur ?'} <button class="link" id="swap">${register?'Se connecter':'Créer un compte'}</button></p></section></div>`;
+ <div class="notice" style="margin:12px 0">Vos coordonnées et le nom de votre organisation servent à examiner votre demande et à gérer votre accès. Les fonctions d’administration sont réservées aux comptes approuvés.</div>
+ <label style="display:flex;gap:9px;align-items:flex-start;font-size:11px;color:#536178;margin:12px 0"><input id="consent" type="checkbox" style="margin-top:2px"> J’ai lu cette information et je comprends que l’accès administrateur nécessite une approbation.</label>
+ <button id="submit" class="button primary" disabled>${register?'Créer mon compte':'Se connecter'}</button><div class="or">ou</div><button id="google" class="button google-button" disabled><span class="google-mark" aria-hidden="true">G</span>Continuer avec Google</button>
+ <p style="font-size:11px;margin:18px 0 0;text-align:center">${register?'Déjà inscrit ?':'Vous souhaitez gérer YiDream ?'} <button class="link" id="swap">${register?'Se connecter':'Demander un accès'}</button></p></section></div>`;
+ $('#authBack').onclick=publicPortal;
  $('#swap').onclick=()=>authScreen(register?'login':'register');
+ $('#consent').onchange=()=>{const ok=$('#consent').checked;$('#submit').disabled=!ok;$('#google').disabled=!ok};
  $('#google').onclick=async()=>{const b=$('#google');b.disabled=true;b.textContent='Redirection vers Google…';try{await cloud.signInGoogle()}catch(e){authScreen(mode,errorText(e))}};
  $('#submit').onclick=async()=>{
   const email=$('#email').value.trim(),password=$('#password').value;
+  if(!$('#consent').checked){message('Veuillez confirmer la notice avant de continuer.');return}
   if(register&&password!==$('#confirm').value){message('Les mots de passe ne correspondent pas.');return}
   const b=$('#submit');b.disabled=true;b.textContent='Patientez…';
   try{
@@ -31,11 +37,22 @@ function authScreen(mode='login',error=''){
   }catch(e){b.disabled=false;b.textContent=register?'Créer mon compte':'Se connecter';message(errorText(e))}
  };
 }
+function publicPortal(){
+ app.innerHTML=`<div class="auth-wrap" style="display:block;padding:0"><header style="max-width:1120px;margin:auto;padding:22px 24px;display:flex;justify-content:space-between;align-items:center;gap:16px"><a class="brand" href="${portalHomeHref()}" style="padding:0"><img src="${logoUrl}" alt="">YiDream <span style="color:#73819a;font-weight:500">Suite</span></a><div class="actions"><button class="button" id="portalLogin">Se connecter</button><button class="button primary" id="portalApply">Postuler comme administrateur</button></div></header><main style="max-width:1120px;margin:0 auto;padding:72px 24px"><span class="role">PORTAIL ADMINISTRATEUR</span><h1 style="max-width:760px;font-size:clamp(36px,6vw,62px);margin-top:22px">Gérez les appareils YiDream dans un espace sécurisé.</h1><p style="max-width:700px;color:#73819a;font-size:18px;line-height:1.65">La Suite réunit la préparation Android, le suivi des appareils et la gestion des clients et des magasins. Les outils de configuration sont réservés aux administrateurs approuvés.</p><div class="actions" style="margin:26px 0 45px"><button class="button primary" id="portalAccess">Accéder à la console</button><button class="button" id="portalApplySecond">Déposer une candidature</button></div><div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));max-width:900px"><div class="stat"><label>Préparation Android</label><strong style="font-size:20px">Disponible</strong><small>Configuration depuis un appareil raccordé en USB</small></div><div class="stat"><label>Autres plateformes</label><strong style="font-size:20px">En préparation</strong><small>iOS, macOS, Windows et YiDream Auto</small></div><div class="stat"><label>Accès contrôlé</label><strong style="font-size:20px">Sur approbation</strong><small>Chaque candidature est examinée par YiDream</small></div></div><section class="panel" style="max-width:900px;margin-top:22px;padding:24px"><h2>Comment rejoindre l’espace ?</h2><p style="color:#73819a;line-height:1.6">Connectez-vous avec votre compte Google ou votre adresse e-mail, indiquez votre boutique et envoyez votre candidature. En attendant l’approbation, les appareils, clients et fonctions de configuration restent inaccessibles.</p><button class="button primary" id="portalApplyThird">Postuler pour devenir administrateur</button></section></main></div>`;
+ const login=()=>authScreen('login'), apply=()=>authScreen('register');
+ $('#portalLogin').onclick=login;$('#portalAccess').onclick=login;$('#portalApply').onclick=apply;$('#portalApplySecond').onclick=apply;$('#portalApplyThird').onclick=apply;
+}
 function errorText(e){const m=typeof e==='string'?e:(e?.message||'');if(/Invalid login credentials/i.test(m))return 'Adresse e-mail ou mot de passe incorrect.';if(/Email not confirmed/i.test(m))return 'Confirmez votre adresse e-mail avant de vous connecter.';if(/provider.*not enabled|unsupported provider/i.test(m))return 'La connexion Google doit être activée dans Supabase Auth → Providers → Google avec des identifiants OAuth Google.';if(/redirect_uri_mismatch|redirect URI mismatch/i.test(m))return 'Google refuse l’adresse de retour. Vérifiez l’URI de rappel configurée dans Google Cloud.';if(/invalid_client|unauthorized_client|client authentication failed/i.test(m))return 'Google refuse l’identifiant OAuth. Vérifiez le Client ID et le Client Secret dans Supabase.';if(/redirect.*(url|uri)|not allowed/i.test(m))return 'Cette adresse de retour n’est pas autorisée dans Supabase Auth → URL Configuration.';return m||'Une erreur est survenue.'}
 function oauthErrorFromUrl(){const p=new URLSearchParams(location.search);const m=p.get('error_description')||p.get('error_code')||p.get('error');return m?errorText(m):''}
 async function onboarding(error=''){
- app.innerHTML=`<div class="auth-wrap"><section class="auth"><a href="${suiteHomeHref()}" class="brand" style="padding:0 0 20px"><img src="${logoUrl}" alt=""> YiDream <span style="color:#73819a;font-weight:500">Suite</span></a><h1>Votre espace revendeur</h1><p>Indiquez le nom de votre boutique pour terminer la création de l’espace.</p><div id="authError" class="msg">${esc(error)}</div><div class="field"><label>Nom de la boutique ou entreprise</label><input id="shop" autocomplete="organization"></div><button class="button primary" id="save">Continuer</button><button class="link" id="logout" style="display:block;margin:15px auto 0">Se déconnecter</button></section></div>`;
- $('#logout').onclick=()=>cloud.signOut();$('#save').onclick=async()=>{try{const p=await cloud.ensureProfile($('#shop').value);if(!p){$('#authError').textContent='Saisissez le nom de votre entreprise.';return}await refresh()}catch(e){$('#authError').textContent=errorText(e)}}
+ app.innerHTML=`<div class="auth-wrap"><section class="auth"><a href="${portalHomeHref()}" class="brand" style="padding:0 0 20px"><img src="${logoUrl}" alt=""> YiDream <span style="color:#73819a;font-weight:500">Suite</span></a><h1>Votre candidature administrateur</h1><p>Complétez ces informations. L’accès aux appareils et aux comptes sera ouvert après approbation par YiDream.</p><div id="authError" class="msg">${esc(error)}</div><div class="field"><label>Nom de la boutique ou organisation</label><input id="shop" autocomplete="organization"></div><div class="field"><label>Pourquoi souhaitez-vous administrer YiDream ?</label><input id="reason" maxlength="500"></div><button class="button primary" id="save">Envoyer ma candidature</button><button class="link" id="logout" style="display:block;margin:15px auto 0">Se déconnecter</button></section></div>`;
+ $('#logout').onclick=async()=>{await cloud.signOut();state.session=null;state.data=null;publicPortal()};
+ $('#save').onclick=async()=>{try{const storeName=$('#shop').value.trim();if(!storeName){$('#authError').textContent='Saisissez le nom de votre boutique ou organisation.';return}const a=await cloud.submitAdminApplication({storeName,reason:$('#reason').value});pendingScreen(a)}catch(e){$('#authError').textContent=errorText(e)}}
+}
+function pendingScreen(application){
+ const status=application?.status==='rejected'?'Votre précédente candidature n’a pas été approuvée. Vous pouvez contacter YiDream pour en savoir plus.':'Votre candidature est en attente d’examen. Vous recevrez l’accès administrateur après approbation.';
+ app.innerHTML=`<div class="auth-wrap"><section class="auth"><a href="${portalHomeHref()}" class="brand" style="padding:0 0 20px"><img src="${logoUrl}" alt=""> YiDream <span style="color:#73819a;font-weight:500">Suite</span></a><h1>Candidature enregistrée</h1><p>${esc(status)}</p><div class="notice">La connexion est active, mais les appareils, clients et outils de configuration restent verrouillés jusqu’à l’approbation.</div><button class="button" id="pendingLogout" style="margin-top:16px">Se déconnecter</button></section></div>`;
+ $('#pendingLogout').onclick=async()=>{await cloud.signOut();state.session=null;publicPortal()};
 }
 function shell(){
  const d=state.data;
@@ -50,6 +67,35 @@ function shell(){
  document.querySelectorAll('[data-platform-action]').forEach(b=>b.onclick=()=>{state.page='devices';state.tab='Android';state.platformLabel='Android';state.deviceQuery='';render()});
 }
 
+function renderOwnerPortal(){
+ const d=state.ownerData||{applications:[],admins:[],stores:[],clients:[],devices:[],logs:[]};
+ const tabs=[['dashboard','Vue d’ensemble'],['applications','Candidatures'],['admins','Administrateurs'],['stores','Magasins'],['clients','Clients'],['devices','Appareils']];
+ const tabButtons=tabs.map(([key,label])=>`<button data-owner-page="${key}" class="${state.ownerPage===key?'active':''}">${label}</button>`).join('');
+ let body='';
+ if(state.ownerPage==='dashboard'){
+  body=`<div class="stats"><div class="stat"><label>Candidatures en attente</label><strong>${d.applications.filter(x=>x.status==='pending').length}</strong></div><div class="stat"><label>Administrateurs</label><strong>${d.admins.filter(x=>x.role==='admin').length}</strong></div><div class="stat"><label>Magasins</label><strong>${d.stores.length}</strong></div><div class="stat"><label>Appareils à configurer</label><strong>${d.devices.filter(x=>x.configuration_status!=='configured').length}</strong></div></div><section class="panel"><div class="panel-head"><h2>Demandes récentes</h2><button class="link" data-owner-page="applications">Toutes les candidatures →</button></div>${applicationRows(d.applications.filter(x=>x.status==='pending').slice(0,5))}</section>`;
+ }else if(state.ownerPage==='applications'){
+  body=`<section class="panel"><h2>Candidatures administrateur</h2><div class="table-wrap"><table class="table"><thead><tr><th>Compte</th><th>Boutique</th><th>Motif</th><th>Statut</th><th></th></tr></thead><tbody>${d.applications.map(x=>`<tr><td>${esc(x.email||x.user_id)}</td><td>${esc(x.store_name)}</td><td>${esc(x.reason||'—')}</td><td>${esc(x.status)}</td><td>${x.status==='pending'?`<button class="link" data-review="approve" data-id="${x.id}">Approuver</button> <button class="link" data-review="reject" data-id="${x.id}">Refuser</button>`:esc(x.reviewed_at?new Date(x.reviewed_at).toLocaleDateString('fr-FR'):'—')}</td></tr>`).join('')||'<tr><td colspan="5">Aucune candidature.</td></tr>'}</tbody></table></div></section>`;
+ }else if(state.ownerPage==='admins'){
+  body=`<section class="panel"><h2>Comptes administrateur</h2><div class="table-wrap"><table class="table"><thead><tr><th>Adresse du compte</th><th>Rôle</th><th>Ajouté le</th><th></th></tr></thead><tbody>${d.admins.map(x=>`<tr><td>${esc(x.email||x.user_id)}</td><td>${x.role==='owner'?'Propriétaire':'Administrateur'}</td><td>${new Date(x.created_at).toLocaleDateString('fr-FR')}</td><td>${x.role==='admin'?'<button class="link" data-admin-remove="'+x.user_id+'">Retirer l’accès</button>':''}</td></tr>`).join('')}</tbody></table></div></section>`;
+ }else if(state.ownerPage==='stores'){
+  body=`<section class="panel"><h2>Magasins et organisations</h2><div class="table-wrap"><table class="table"><thead><tr><th>Magasin</th><th>Adresse</th><th>Clients</th><th>Appareils</th><th></th></tr></thead><tbody>${d.stores.map(x=>`<tr><td>${esc(x.shop_name)}</td><td>${esc(x.email)}</td><td>${d.clients.filter(y=>y.user_id===x.user_id).length}</td><td>${d.devices.filter(y=>y.user_id===x.user_id).length}</td><td><button class="link" data-store-edit="${x.user_id}">Renommer</button></td></tr>`).join('')||'<tr><td colspan="5">Aucun magasin enregistré.</td></tr>'}</tbody></table></div></section>`;
+ }else if(state.ownerPage==='clients'){
+  body=`<section class="panel"><h2>Tous les clients</h2><div class="table-wrap"><table class="table"><thead><tr><th>Client</th><th>Groupe</th><th>Magasin</th><th></th></tr></thead><tbody>${d.clients.map(x=>{const store=d.stores.find(s=>s.user_id===x.user_id);return `<tr><td>${esc(x.name)}</td><td>${esc(x.group_name||'—')}</td><td>${esc(store?.shop_name||x.user_id)}</td><td><button class="link" data-client-remove="${x.id}">Retirer</button></td></tr>`}).join('')||'<tr><td colspan="4">Aucun client.</td></tr>'}</tbody></table></div></section>`;
+ }else{
+  body=`<section class="panel"><div class="panel-head"><h2>Appareils et préparation</h2><a class="link" href="${portalHomeHref()}">Ouvrir l’outil Android →</a></div><div class="table-wrap"><table class="table"><thead><tr><th>Appareil</th><th>Plateforme</th><th>Magasin</th><th>Préparation</th><th></th></tr></thead><tbody>${d.devices.map(x=>{const store=d.stores.find(s=>s.user_id===x.user_id);const ready=x.configuration_status==='configured';return `<tr><td>${esc(x.name)}</td><td>${esc(x.platform)}</td><td>${esc(store?.shop_name||x.user_id)}</td><td>${ready?'Configuré':'À configurer'}</td><td><button class="link" data-device-ready="${x.id}" data-ready="${ready?'false':'true'}">${ready?'Rouvrir':'Marquer configuré'}</button></td></tr>`}).join('')||'<tr><td colspan="5">Aucun appareil enregistré.</td></tr>'}</tbody></table></div><div class="notice">Les appareils sont ajoutés avec le statut « à configurer ». Seul le propriétaire peut les marquer configurés après la préparation physique via l’outil Android.</div></section>`;
+ }
+ app.innerHTML=`<div class="shell"><aside class="side"><div class="brand"><img src="${logoUrl}" alt="">YiDream <span class="suite-word">Suite</span></div><div class="workspace">Console propriétaire</div><nav class="nav">${tabButtons}</nav><div class="side-bottom"><div class="account-copy"><b>${esc(state.session?.user?.email||'Propriétaire')}</b><small>Gestion globale YiDream</small></div><button id="ownerLogout" class="logout-button" style="margin-top:12px">Se déconnecter</button></div></aside><main class="main"><header class="topbar"><span class="crumb">YiDream Suite / <b>Administration générale</b></span><div class="top-actions"><span class="role">PROPRIÉTAIRE</span><span class="hebrew-decor" dir="rtl" lang="he" aria-hidden="true">בס״ד</span></div></header><section class="content">${head(tabs.find(x=>x[0]===state.ownerPage)?.[1]||'Administration','Gestion des candidatures, administrateurs, magasins, clients et appareils.')}${body}</section></main></div>`;
+ document.querySelectorAll('[data-owner-page]').forEach(b=>b.onclick=()=>{state.ownerPage=b.dataset.ownerPage;renderOwnerPortal()});
+ $('#ownerLogout').onclick=async()=>{await cloud.signOut();state.session=null;state.data=null;state.ownerData=null;publicPortal()};
+ document.querySelectorAll('[data-review]').forEach(b=>b.onclick=async()=>{try{await cloud.reviewAdminApplication(b.dataset.id,b.dataset.review==='approve');await reloadOwner()}catch(e){notify(errorText(e))}});
+ document.querySelectorAll('[data-admin-remove]').forEach(b=>b.onclick=async()=>{if(confirm('Retirer les droits administrateur de ce compte ?'))try{await cloud.setPlatformAdmin(b.dataset.adminRemove,false);await reloadOwner()}catch(e){notify(errorText(e))}});
+ document.querySelectorAll('[data-store-edit]').forEach(b=>b.onclick=async()=>{const store=d.stores.find(x=>x.user_id===b.dataset.storeEdit);const name=prompt('Nouveau nom de la boutique',store?.shop_name||'');if(name?.trim())try{await cloud.updateStoreName(b.dataset.storeEdit,name);await reloadOwner()}catch(e){notify(errorText(e))}});
+ document.querySelectorAll('[data-client-remove]').forEach(b=>b.onclick=async()=>{if(confirm('Retirer ce client ?'))try{await cloud.removeClient(b.dataset.clientRemove);await reloadOwner()}catch(e){notify(errorText(e))}});
+ document.querySelectorAll('[data-device-ready]').forEach(b=>b.onclick=async()=>{try{await cloud.setDeviceConfigured(b.dataset.deviceReady,b.dataset.ready==='true');await reloadOwner()}catch(e){notify(errorText(e))}});
+}
+function applicationRows(items){return items.length?items.map(x=>`<div class="activity-row"><b>${esc(x.store_name)}</b><small>${esc(x.email||x.user_id)} · ${new Date(x.created_at).toLocaleDateString('fr-FR')}</small></div>`).join(''):'<div class="empty">Aucune candidature en attente.</div>'}
+async function reloadOwner(){state.ownerData=await withTimeout(cloud.loadOwnerData(),'des données de gestion');renderOwnerPortal()}
 function head(title,sub,action=''){return `<div class="heading"><div><h1>${title}</h1><p>${sub}</p></div>${action}</div>`}
 function render(){
  if(!state.data)return;
@@ -91,11 +137,27 @@ function renderActivity(c,d){c.innerHTML=head('Journal d’activité','Actions e
 async function start(){
  try{
   await withTimeout(cloud.ready,'le chargement du service de connexion');
-  if(!cloud.configured){app.innerHTML='<div class="auth-wrap"><section class="auth"><h1>Connexion à configurer</h1><p>YiDream Suite attend la configuration Supabase. Le site ne crée pas de comptes locaux.</p><div class="notice">La connexion au compte utilise Supabase. Si Google est refusé, activez le fournisseur dans Authentication → Providers → Google et vérifiez les URL de retour autorisées.</div><a class="button" style="display:block;text-align:center;margin-top:14px" href="'+suiteHomeHref()+'">Retour</a></section></div>';return}
+  if(!cloud.configured){app.innerHTML='<div class="auth-wrap"><section class="auth"><h1>Connexion à configurer</h1><p>YiDream Suite attend la configuration Supabase.</p><div class="notice">Vérifiez les paramètres de connexion du projet.</div></section></div>';return}
   state.session=await withTimeout(cloud.session(),'la session revendeur');
-  if(!state.session){authScreen('login',oauthErrorFromUrl());return}
+  if(!state.session){
+    const params=new URLSearchParams(location.search);
+    if(params.has('apply'))authScreen('register');
+    else if(params.has('login'))authScreen('login');
+    else publicPortal();
+    return;
+  }
+  state.platformRole=await withTimeout(cloud.platformRole(),'les droits du compte');
+  if(state.platformRole==='owner'){
+    state.ownerData=await withTimeout(cloud.loadOwnerData(),'les données de gestion');
+    renderOwnerPortal();
+    return;
+  }
   let p=await withTimeout(cloud.ensureProfile(),'le profil revendeur');
-  if(!p){onboarding();return}
+  if(!p){
+    const application=await withTimeout(cloud.myAdminApplication(),'votre candidature');
+    if(application){pendingScreen(application);return}
+    onboarding();return;
+  }
   await refresh();
  }catch(e){app.innerHTML='<div class="auth-wrap"><section class="auth"><h1>Impossible de charger votre espace</h1><p>'+esc(errorText(e))+'</p><button class="button" onclick="location.reload()">Réessayer</button></section></div>'}
 }

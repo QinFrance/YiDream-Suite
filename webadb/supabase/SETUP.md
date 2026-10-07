@@ -1,30 +1,46 @@
-# Connexion Supabase et Google — YiDream Suite
+# Portail administrateur et connexion — YiDream Suite
 
-L’espace admin utilise Supabase Auth et Postgres. Les profils, clients, appareils et journaux sont séparés par compte grâce aux règles RLS.
+YiDream Suite sépare le portail public, la candidature, la console propriétaire et l’espace des administrateurs approuvés. Les règles d’accès sont appliquées dans Supabase, pas seulement dans l’interface.
 
-L’URL Supabase et la clé publique `publishable` du projet YiDream Suite sont configurées comme valeurs par défaut dans `webadb/src/cloud-admin.js`. Cette clé est faite pour être utilisée dans le navigateur. Ne place jamais la clé privée `service_role` ni un secret OAuth Google dans le dépôt.
+## Installer le schéma
 
-## Créer les tables
+Dans le projet Supabase, ouvre **SQL Editor** et exécute les migrations dans l’ordre :
 
-Dans le projet Supabase, ouvre **SQL Editor** et exécute le fichier `webadb/supabase/migrations/20261006000000_reseller_admin.sql`. La migration crée le profil revendeur, les clients, les appareils et le journal, avec des règles pour isoler les comptes.
+1. `20261006000000_reseller_admin.sql`
+2. `20261007000000_owner_admin_portal.sql`
 
-## Activer la connexion Google
+La seconde migration ajoute les candidatures d’administrateur, les rôles propriétaire/administrateur et l’état de préparation des appareils.
 
-Le bouton **Continuer avec Google** et le flux de connexion sont présents dans l’interface. Google doit aussi être autorisé dans Supabase :
+## Initialiser le propriétaire YiDream
 
-1. Dans [Google Cloud Console](https://console.cloud.google.com/), crée un identifiant OAuth de type **Application Web**.
+Après avoir exécuté les migrations :
+
+1. Dans **Authentication → Users**, ouvre le compte Google qui doit être propriétaire et copie son identifiant UUID.
+2. Dans **SQL Editor**, remplace `UUID_DU_PROPRIETAIRE` dans cette requête puis exécute-la :
+
+```sql
+insert into public.platform_admins (user_id, role, email)
+select id, 'owner', coalesce(email, '')
+from auth.users
+where id = 'UUID_DU_PROPRIETAIRE';
+```
+
+Cette opération est nécessaire une seule fois et l’adresse du propriétaire n’est pas publiée dans le dépôt.
+
+## Parcours d’accès
+
+- Le portail `/admin/` présente YiDream Suite sans connexion et permet de se connecter ou de postuler.
+- Les comptes peuvent s’authentifier par Google ou par e-mail, mais un nouveau compte n’obtient pas automatiquement de droits.
+- Le propriétaire examine les candidatures et accorde ou retire les accès administrateur.
+- La configuration Android et les outils de gestion demandent une session avec un rôle approuvé.
+- Les appareils peuvent être enregistrés avec l’état **À configurer**. Seul le propriétaire peut les passer à **Configuré**, après la préparation physique.
+
+## Connexion Google
+
+1. Crée un client OAuth Google de type **Application Web**.
 2. Dans les origines JavaScript autorisées, ajoute `https://qinfrance.github.io`.
-3. Dans les URI de redirection autorisées, ajoute l’URL de rappel affichée sur la page du fournisseur Google dans Supabase. Pour ce projet, elle est normalement `https://jqrznghqwdjbizjehzrm.supabase.co/auth/v1/callback`.
-4. Copie l’identifiant client et le secret client générés.
-5. Dans Supabase, ouvre **Authentication → Providers → Google**, active Google et colle l’identifiant et le secret client.
-6. Dans **Authentication → URL Configuration**, ajoute `https://qinfrance.github.io/YiDream-Suite/admin.html` aux URL de redirection autorisées. Le projet local peut aussi utiliser `http://localhost:5173/admin.html`.
+3. Dans les URI de redirection autorisées, ajoute l’URL de rappel Supabase : `https://jqrznghqwdjbizjehzrm.supabase.co/auth/v1/callback`.
+4. Dans Supabase **Authentication → Providers → Google**, active Google et ajoute le Client ID et le secret.
+5. Dans **Authentication → URL Configuration**, autorise `https://qinfrance.github.io/YiDream-Suite/admin/`.
 
-Le secret Google doit rester dans le tableau de bord Supabase. N’envoie-le pas ici et ne le mets pas dans GitHub. Une première connexion Google demandera le nom de la boutique pour créer le profil revendeur.
-
-## Ce que gère l’espace admin
-
-Les revendeurs peuvent se connecter par e-mail/mot de passe ou Google, gérer leurs clients, inscrire et retirer des fiches appareils, puis consulter leur journal. Le tableau de bord affiche uniquement des données enregistrées dans leur compte.
-
-Les fiches ne signalent pas une connexion en direct. Le contrôle à distance et la synchronisation des appareils ne sont pas encore fournis par cette interface. La configuration Android en USB reste dans YiDream Suite.
-
-Les anciennes fiches stockées dans le navigateur ne sont pas migrées automatiquement.
+Ne mets jamais le secret OAuth Google ni une clé `service_role` dans GitHub. La clé publishable présente dans le client web est conçue pour être publique et reste soumise aux politiques RLS.

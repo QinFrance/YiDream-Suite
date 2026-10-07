@@ -220,7 +220,7 @@ $$;
 -- Protect the configuration attestation from direct edits by store admins.
 create or replace function public.guard_device_configuration()
 returns trigger language plpgsql set search_path = ''
-as $
+as $$
 begin
   if tg_op = 'INSERT' then
     if new.configuration_status = 'configured' and not public.is_platform_owner() then
@@ -234,7 +234,7 @@ begin
   end if;
   return new;
 end;
-$;
+$$;
 drop trigger if exists devices_guard_configuration on public.devices;
 create trigger devices_guard_configuration
 before insert or update on public.devices

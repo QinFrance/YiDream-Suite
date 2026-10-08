@@ -152,20 +152,20 @@ const sections = {
   },
 
   'Unlock & Apply'(c) {
-    c.innerHTML = \`\${head(t('admin_title'), t('admin_subtitle'))}
+    c.innerHTML = `${head(t('admin_title'), t('admin_subtitle'))}
       <div class="panel unlock-panel">
         <div class="unlock-intro"><span class="unlock-badge">🔐</span><div><h4>Code de déverrouillage</h4><p>Réservé aux administrateurs approuvés. Le code change chaque jour.</p></div></div>
-        <button class="primary" id="btnCode">\${esc(t('admin_generate_code'))}</button>
+        <button class="primary" id="btnCode">${esc(t('admin_generate_code'))}</button>
         <div id="codeOut" aria-live="polite"></div>
       </div>
-      <div class="panel apply-panel"><div><h4>Appliquer la configuration</h4><p class="small">Le code sécurisé est ajouté au téléphone pendant cette étape.</p></div><button class="primary" id="btnApply">\${esc(t('admin_apply'))}</button></div>
-      \${logBox()}\`;
+      <div class="panel apply-panel"><div><h4>Appliquer la configuration</h4><p class="small">Le code sécurisé est ajouté au téléphone pendant cette étape.</p></div><button class="primary" id="btnApply">${esc(t('admin_apply'))}</button></div>
+      ${logBox()}`;
     $('btnCode').onclick = async () => {
       const button = $('btnCode');
       button.disabled = true;
       try {
         const material = await window.getAndroidUnlockMaterial();
-        $('codeOut').innerHTML = \`<div class="code-display" aria-label="Code du jour">\${esc(material.code)}</div><div class="small">Valable aujourd’hui · renouvelé automatiquement demain</div>\`;
+        $('codeOut').innerHTML = `<div class="code-display" aria-label="Code du jour">${esc(material.code)}</div><div class="small">Valable aujourd’hui · renouvelé automatiquement demain</div>`;
       } catch (e) { fail('Code de déverrouillage', e); }
       finally { button.disabled = false; }
     };

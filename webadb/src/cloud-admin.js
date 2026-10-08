@@ -92,7 +92,13 @@ export async function setPlatformAdmin(userId,makeAdmin){
 }
 export async function getAndroidUnlockMaterial(){
   const {data,error}=await mustDb().rpc('get_android_unlock_material');
-  if(error)throw error;
+  if(error){
+    const details=`${error.message||''} ${error.details||''} ${error.hint||''}`;
+    if(error.code==='PGRST202'||details.includes('get_android_unlock_material')){
+      throw new Error('Cette fonction manque dans Supabase. Exécute la migration 20261008000000_android_admin_unlock_key.sql dans le SQL Editor, puis recharge la page.');
+    }
+    throw error;
+  }
   if(!data?.code||!data?.intermediate_key)throw new Error('La clé sécurisée Android est indisponible.');
   return data;
 }

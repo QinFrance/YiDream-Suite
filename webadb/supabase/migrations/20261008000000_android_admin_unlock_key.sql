@@ -50,3 +50,6 @@ $$;
 
 revoke all on function public.get_android_unlock_material() from public, anon;
 grant execute on function public.get_android_unlock_material() to authenticated;
+
+-- Refresh the PostgREST function cache so the new RPC becomes immediately available.
+notify pgrst, 'reload schema';

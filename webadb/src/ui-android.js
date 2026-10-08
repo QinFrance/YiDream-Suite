@@ -2,7 +2,6 @@
 import { YiDreamAdb, parseExtraPackages } from './adb.js';
 import { CONFIG } from './config.js';
 import { UI_STRINGS } from './i18n.js';
-import { deriveIntermediateKey, deriveDailyCode, todayString, bytesToBase64 } from './crypto.js';
 
 const client = new YiDreamAdb();
 const state = {
@@ -153,29 +152,44 @@ const sections = {
   },
 
   'Unlock & Apply'(c) {
-    c.innerHTML = `${head(t('admin_title'), t('admin_subtitle'))}
-      <div class="panel"><div class="field"><label>${esc(t('admin_password_label'))}</label><input type="password" id="master" autocomplete="off"></div><br>
-        <button class="ghost" id="btnCode">${esc(t('admin_generate_code'))}</button><div id="codeOut"></div></div>
-      <div style="height:12px"></div>
-      <div class="panel"><button class="primary" id="btnApply">${esc(t('admin_apply'))}</button></div>${logBox()}`;
+    c.innerHTML = \`\${head(t('admin_title'), t('admin_subtitle'))}
+      <div class="panel unlock-panel">
+        <div class="unlock-intro"><span class="unlock-badge">🔐</span><div><h4>Code de déverrouillage</h4><p>Réservé aux administrateurs approuvés. Le code change chaque jour.</p></div></div>
+        <button class="primary" id="btnCode">\${esc(t('admin_generate_code'))}</button>
+        <div id="codeOut" aria-live="polite"></div>
+      </div>
+      <div class="panel apply-panel"><div><h4>Appliquer la configuration</h4><p class="small">Le code sécurisé est ajouté au téléphone pendant cette étape.</p></div><button class="primary" id="btnApply">\${esc(t('admin_apply'))}</button></div>
+      \${logBox()}\`;
     $('btnCode').onclick = async () => {
-      const pw = $('master').value;
-      if (!pw) { toast(t('password_first')); return; }
-      const code = await deriveDailyCode(await deriveIntermediateKey(pw), todayString());
-      $('codeOut').innerHTML = `<div class="code-display">${esc(code)}</div><div class="small">${esc(t('log_code_valid'))}</div>`;
+      const button = $('btnCode');
+      button.disabled = true;
+      try {
+        const material = await window.getAndroidUnlockMaterial();
+        $('codeOut').innerHTML = \`<div class="code-display" aria-label="Code du jour">\${esc(material.code)}</div><div class="small">Valable aujourd’hui · renouvelé automatiquement demain</div>\`;
+      } catch (e) { fail('Code de déverrouillage', e); }
+      finally { button.disabled = false; }
     };
     $('btnApply').onclick = async () => {
       if (!needDevice()) return;
-      const b = state.blocking;
-      const extra = parseExtraPackages(b.extra);
-      if (extra.invalid.length) log('Configuration', t('extra_invalid') + extra.invalid.join(', '));
-      const config = { block_browsers: b.browsers, block_ai: b.ai, block_social: b.social, block_store: b.store, extra_packages: extra.valid };
-      const pw = $('master').value;
-      if (pw) config.unlock_intermediate_key = bytesToBase64(await deriveIntermediateKey(pw));
+      const button = $('btnApply');
+      button.disabled = true;
       try {
+        const b = state.blocking;
+        const extra = parseExtraPackages(b.extra);
+        if (extra.invalid.length) log('Configuration', t('extra_invalid') + extra.invalid.join(', '));
+        const material = await window.getAndroidUnlockMaterial();
+        const config = {
+          block_browsers: b.browsers,
+          block_ai: b.ai,
+          block_social: b.social,
+          block_store: b.store,
+          extra_packages: extra.valid,
+          unlock_intermediate_key: material.intermediate_key
+        };
         await client.applyConfig(config, (s) => log('Configuration', t({ launching: 'log_launching_app', sending: 'log_sending_config', relaunching: 'log_relaunching' }[s])));
         log('Configuration', t('log_config_applied')); toast(t('log_config_applied'));
       } catch (e) { fail('Configuration', e); }
+      finally { button.disabled = false; }
     };
   },
 

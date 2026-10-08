@@ -90,6 +90,13 @@ export async function setPlatformAdmin(userId,makeAdmin){
   const {error}=await mustDb().rpc('set_platform_admin',{target_user_id:userId,make_admin:makeAdmin});
   if(error)throw error;
 }
+export async function getAndroidUnlockMaterial(){
+  const {data,error}=await mustDb().rpc('get_android_unlock_material');
+  if(error)throw error;
+  if(!data?.code||!data?.intermediate_key)throw new Error('La clé sécurisée Android est indisponible.');
+  return data;
+}
+
 export async function setDeviceConfigured(id,configured){
   const {error}=await mustDb().rpc('set_device_configured',{target_device_id:id,is_configured:configured});
   if(error)throw error;

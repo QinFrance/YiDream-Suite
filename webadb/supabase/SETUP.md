@@ -8,8 +8,9 @@ Dans le projet Supabase, ouvre **SQL Editor**. Si le schéma revendeur n’a pas
 
 1. `20261006000000_reseller_admin.sql`
 2. `20261007000000_owner_admin_portal.sql`
+3. `20261008000000_android_admin_unlock_key.sql`
 
-La seconde migration ajoute les candidatures d’administrateur, les rôles propriétaire/administrateur et l’état de préparation des appareils.
+La seconde migration ajoute les candidatures d’administrateur, les rôles propriétaire/administrateur et l’état de préparation des appareils. La troisième réserve une clé de déverrouillage Android côté serveur et autorise sa récupération uniquement via une fonction contrôlée pour les administrateurs approuvés.
 
 ## Initialiser le propriétaire YiDream
 

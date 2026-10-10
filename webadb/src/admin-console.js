@@ -160,7 +160,7 @@ async function loadYzMdmDashboard(host,ownerData){
    card('Connexions WebADB',total('webadb_connected'),'Connexions réussies')+
    card('Installations YZ',total('launcher_installed'),'Nouvelles installations via WebADB')+
    card('Échecs d’installation',total('install_failed'),'À investiguer')+
-   card('Téléchargements GitHub',downloads,'Assets des Releases')+
+   card('Clics APK sur le site',total('download_click'),'clics, pas téléchargements terminés')+card('Téléchargements des Releases',downloads,'Assets des Releases GitHub')+
    card('Builds en erreur',failedRuns,'Parmi les 30 derniers workflows')+
    card('Demandes GitHub ouvertes',issues.length,'Issues sans pull request')+
    card('Candidatures admin en attente',pending,'Demandes dans YiDream Suite')+

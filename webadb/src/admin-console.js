@@ -99,10 +99,12 @@ function shell(){
 
 function renderOwnerPortal(){
  const d=state.ownerData||{applications:[],admins:[],stores:[],clients:[],devices:[],logs:[]};
- const tabs=[['dashboard','Vue d’ensemble'],['applications','Candidatures'],['admins','Administrateurs'],['stores','Magasins'],['clients','Clients'],['devices','Appareils']];
+ const tabs=[['dashboard','Vue d’ensemble'],['yzmdm','Statistiques YZ MDM'],['applications','Candidatures'],['admins','Administrateurs'],['stores','Magasins'],['clients','Clients'],['devices','Appareils']];
  const tabButtons=tabs.map(([key,label])=>`<button data-owner-page="${key}" class="${state.ownerPage===key?'active':''}">${label}</button>`).join('');
  let body='';
- if(state.ownerPage==='android'){
+ if(state.ownerPage==='yzmdm'){
+  body='<section class="panel" id="yzMdmStats"><div class="empty">Chargement des statistiques YZ MDM…</div></section>';
+ }else if(state.ownerPage==='android'){
   body='<div id="ownerAndroidWorkspace"></div>';
  }else if(state.ownerPage==='dashboard'){
   body=`<div class="stats"><div class="stat"><label>Candidatures en attente</label><strong>${d.applications.filter(x=>x.status==='pending').length}</strong></div><div class="stat"><label>Administrateurs</label><strong>${d.admins.filter(x=>x.role==='admin').length}</strong></div><div class="stat"><label>Magasins</label><strong>${d.stores.length}</strong></div><div class="stat"><label>Appareils à configurer</label><strong>${d.devices.filter(x=>x.configuration_status!=='configured').length}</strong></div></div><section class="panel"><div class="panel-head"><h2>Demandes récentes</h2><button class="link" data-owner-page="applications">Toutes les candidatures →</button></div>${applicationRows(d.applications.filter(x=>x.status==='pending').slice(0,5))}</section>`;
@@ -125,6 +127,50 @@ function renderOwnerPortal(){
  document.querySelectorAll('[data-store-edit]').forEach(b=>b.onclick=async()=>{const store=d.stores.find(x=>x.user_id===b.dataset.storeEdit);const name=prompt('Nouveau nom de la boutique',store?.shop_name||'');if(name?.trim())try{await cloud.updateStoreName(b.dataset.storeEdit,name);await reloadOwner()}catch(e){notify(errorText(e))}});
  document.querySelectorAll('[data-client-remove]').forEach(b=>b.onclick=async()=>{if(confirm('Retirer ce client ?'))try{await cloud.removeClient(b.dataset.clientRemove);await reloadOwner()}catch(e){notify(errorText(e))}});
  document.querySelectorAll('[data-device-ready]').forEach(b=>b.onclick=async()=>{try{await cloud.setDeviceConfigured(b.dataset.deviceReady,b.dataset.ready==='true');await reloadOwner()}catch(e){notify(errorText(e))}});
+ if(state.ownerPage==='yzmdm') loadYzMdmDashboard($('#yzMdmStats'),d);
+}
+
+async function loadYzMdmDashboard(host,ownerData){
+ if(!host)return;
+ const endpoint='https://api.github.com/repos/QinFrance/YZ-MDM';
+ const getJson=async url=>{const r=await fetch(url,{headers:{Accept:'application/vnd.github+json'}});if(!r.ok)throw new Error('GitHub HTTP '+r.status);return r.json()};
+ const results=await Promise.allSettled([
+  cloud.loadYzMdmMetrics(30),
+  getJson(endpoint+'/releases?per_page=100'),
+  getJson(endpoint+'/actions/runs?per_page=30'),
+  getJson(endpoint+'/issues?state=open&per_page=100')
+ ]);
+ const rows=results[0].status==='fulfilled'?results[0].value:[];
+ const total=metric=>rows.filter(x=>x.metric===metric).reduce((sum,x)=>sum+Number(x.count||0),0);
+ const releases=results[1].status==='fulfilled'?results[1].value:[];
+ const runs=results[2].status==='fulfilled'?(results[2].value.workflow_runs||[]):[];
+ const issues=results[3].status==='fulfilled'?results[3].value.filter(x=>!x.pull_request):[];
+ const downloads=releases.reduce((sum,release)=>sum+(release.assets||[]).reduce((n,asset)=>n+Number(asset.download_count||0),0),0);
+ const failedRuns=runs.filter(x=>x.conclusion==='failure').length;
+ const pending=ownerData.applications.filter(x=>x.status==='pending').length;
+ const metricsReady=results[0].status==='fulfilled';
+ const days=Array.from({length:14},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(13-i));return d.toISOString().slice(0,10)});
+ const daily=days.map(day=>rows.filter(x=>x.day===day&&x.metric==='site_visit').reduce((n,x)=>n+Number(x.count||0),0));
+ const max=Math.max(1,...daily);
+ const chart=days.map((day,i)=>'<div title="'+day+' · '+daily[i]+' visites" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;min-width:0"><span style="font-size:10px;color:var(--muted)">'+(daily[i]||'')+'</span><i style="display:block;width:100%;height:'+Math.max(5,Math.round(daily[i]/max*92))+'px;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#5b7cff,#9a8bff)"></i><small style="font-size:9px;color:var(--muted)">'+day.slice(5)+'</small></div>').join('');
+ const card=(label,value,note='')=>'<div class="stat"><label>'+label+'</label><strong>'+value+'</strong><small>'+note+'</small></div>';
+ host.innerHTML='<div class="panel-head" style="margin-bottom:16px"><div><h2>YZ MDM · suivi des 30 derniers jours</h2><small style="color:var(--muted)">Données actualisées à la demande</small></div><button class="button" id="yzStatsRefresh">Actualiser</button></div>'+
+  '<div class="stats">'+
+   card('Visites du site',total('site_visit'),'Événements anonymes')+
+   card('Connexions WebADB',total('webadb_connected'),'Connexions réussies')+
+   card('Installations YZ',total('launcher_installed'),'Nouvelles installations via WebADB')+
+   card('Échecs d’installation',total('install_failed'),'À investiguer')+
+   card('Téléchargements GitHub',downloads,'Assets des Releases')+
+   card('Builds en erreur',failedRuns,'Parmi les 30 derniers workflows')+
+   card('Demandes GitHub ouvertes',issues.length,'Issues sans pull request')+
+   card('Candidatures admin en attente',pending,'Demandes dans YiDream Suite')+
+  '</div>'+
+  '<section class="panel" style="margin-top:16px"><div class="panel-head"><h2>Visites du site</h2><small>14 derniers jours</small></div><div style="display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:8px;align-items:end;height:145px;padding-top:14px">'+chart+'</div></section>'+
+  '<div class="notice" style="margin-top:14px">'+(metricsReady?'Le suivi compte des événements, sans identifiant de téléphone, adresse e-mail ni historique individuel. Les installations sont comptées quand WebADB installe YZ; les installations faites autrement ne peuvent pas être distinguées.':'Les métriques anonymes ne sont pas encore disponibles. Applique la migration Supabase « 20261011000000_yz_mdm_metrics.sql » pour activer les compteurs.')+' Les échecs de builds, issues et téléchargements viennent des statistiques publiques du dépôt GitHub.</div>';
+ host.querySelector('#yzStatsRefresh').onclick=()=>loadYzMdmDashboard(host,ownerData);
+ if(results.slice(1).some(x=>x.status==='rejected')){
+  const note=document.createElement('p');note.className='notice';note.textContent='Certaines statistiques GitHub sont temporairement indisponibles.';host.append(note);
+ }
 }
 function applicationRows(items){return items.length?items.map(x=>`<div class="activity-row"><b>${esc(x.store_name)}</b><small>${esc(x.email||x.user_id)} · ${new Date(x.created_at).toLocaleDateString('fr-FR')}</small></div>`).join(''):'<div class="empty">Aucune candidature en attente.</div>'}
 async function reloadOwner(){state.ownerData=await withTimeout(cloud.loadOwnerData(),'des données de gestion');renderOwnerPortal()}

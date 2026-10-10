@@ -112,3 +112,13 @@ export async function updateStoreName(userId,shopName){
   const {error}=await mustDb().from('reseller_profiles').update({shop_name:shopName.trim(),updated_at:new Date().toISOString()}).eq('user_id',userId);
   if(error)throw error;
 }
+
+
+/** Données anonymes agrégées pour le tableau YZ MDM (propriétaire uniquement). */
+export async function loadYzMdmMetrics(days=30){
+  if(await platformRole()!=='owner') throw new Error('Accès propriétaire requis.');
+  const since=new Date(Date.now()-Math.max(1,days)*86400000).toISOString().slice(0,10);
+  const {data,error}=await mustDb().from('yz_mdm_metrics_daily').select('day,metric,count').gte('day',since).order('day',{ascending:true});
+  if(error) throw error;
+  return data||[];
+}

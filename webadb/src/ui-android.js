@@ -40,7 +40,7 @@ const errText = (e) => {
   if (m === 'UNSUPPORTED') return t('unsupported');
   if (m === 'NO_DEVICE') return t('log_no_device');
   if (m === 'NOT_CONNECTED') return t('log_connect_first');
-  if (/get_android_unlock_material|schema cache|Could not find the function public\\./i.test(m)) return 'La fonction Android manque dans Supabase. Exécutez webadb/supabase/migrations/20261008000000_android_admin_unlock_key.sql dans SQL Editor, puis rechargez la page.';
+  if (/get_android_unlock_material|schema cache/i.test(m)) return 'La fonction Android manque dans Supabase. Exécutez webadb/supabase/migrations/20261008000000_android_admin_unlock_key.sql dans SQL Editor, puis rechargez la page.';
   return m;
 };
 const fail = (step, e) => { console.error(e); log(step, '❌ ' + errText(e)); toast(errText(e).split('\n')[0]); };

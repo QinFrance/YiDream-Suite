@@ -5,7 +5,7 @@ import { UI_STRINGS } from './i18n.js';
 
 const client = new YiDreamAdb();
 const state = {
-  blocking: { browsers: true, ai: true, social: true, store: true, extra: '' },
+  blocking: { browsers: true, ai: true, social: true, store: true, extra: '', packages: new Set(defaultBlockedPackages) },
   bundledApk: null,
 };
 const lang = () => (window.getLang ? window.getLang() : 'en');
@@ -13,6 +13,14 @@ const t = (k) => UI_STRINGS[lang()]?.[k] ?? UI_STRINGS.en[k] ?? k;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const $ = (id) => document.getElementById(id);
 const toast = (m) => window.toast && window.toast(m);
+
+const appCatalog = {
+  'Navigateurs internet': [['Chrome','com.android.chrome'],['Chrome Beta','com.chrome.beta'],['Firefox','org.mozilla.firefox'],['Samsung Internet','com.sec.android.app.sbrowser'],['Opera','com.opera.browser'],['Opera Mini','com.opera.mini.native'],['Microsoft Edge','com.microsoft.emmx'],['Brave','com.brave.browser'],['DuckDuckGo','com.duckduckgo.mobile.android'],['UC Browser','com.UCMobile.intl'],['Kiwi Browser','com.kiwiz.browser'],['Vivaldi','com.vivaldi.browser'],['Navigateur Android','com.android.browser']],
+  'Assistants IA': [['ChatGPT','com.openai.chatgpt'],['Gemini','com.google.android.apps.bard'],['Google AI','com.google.android.apps.aichat'],['Microsoft Copilot','com.microsoft.copilot'],['Claude','com.anthropic.claude'],['Perplexity','ai.perplexity.app.android'],['DeepSeek','com.deepseek.chat'],['Grok','com.x.grok'],['Character.AI','com.character.ai']],
+  'Réseaux sociaux': [['Instagram','com.instagram.android'],['TikTok','com.zhiliaoapp.musically'],['Facebook','com.facebook.katana'],['Snapchat','com.snapchat.android'],['X','com.twitter.android'],['Reddit','com.reddit.frontpage']],
+  'Boutique d’applications': [['Google Play Store','com.android.vending']]
+};
+const defaultBlockedPackages = new Set(Object.values(appCatalog).flat().map(([,pkg]) => pkg));
 
 // ---- Journal (onglet Logs + boîte de log en direct) ----
 function log(step, event) {
@@ -140,15 +148,16 @@ const sections = {
 
   Configuration(c) {
     const b = state.blocking;
-    const row = (id, key, label) => `<label class="check"><input type="checkbox" id="${id}" ${b[key] ? 'checked' : ''}> ${esc(label)}</label>`;
-    c.innerHTML = `${head(t('blocking_title'), t('blocking_subtitle'), 3)}
-      <div class="android-config"><div class="panel"><h4>${esc(t('blocking_title'))}</h4><div class="check-list">
-        ${row('cBrowsers', 'browsers', t('blocking_browsers'))}${row('cAi', 'ai', t('blocking_ai'))}${row('cSocial', 'social', t('blocking_social'))}${row('cStore', 'store', t('blocking_store'))}
-      </div></div>
-      <div class="panel"><div class="field"><label>${esc(t('blocking_extra_label'))}</label><input type="text" id="cExtra" placeholder="com.example.app1, com.example.app2" value="${esc(b.extra)}"></div>
-        <br><div class="small">${esc(t('blocking_note'))}</div></div></div>`;
-    [['cBrowsers', 'browsers'], ['cAi', 'ai'], ['cSocial', 'social'], ['cStore', 'store']].forEach(([id, k]) => { $(id).onchange = (e) => { b[k] = e.target.checked; }; });
-    $('cExtra').oninput = (e) => { b.extra = e.target.value; };
+    const packageRows = (items) => items.map(([name,pkg]) => '<label class="app-filter-row"><input type="checkbox" data-filter-package="'+esc(pkg)+'" '+(b.packages.has(pkg)?'checked':'')+'><span><b>'+esc(name)+'</b><small>'+esc(pkg)+'</small></span></label>').join('');
+    const groups = Object.entries(appCatalog).map(([name,items,index]) => '').join('');
+    const groupMarkup = Object.entries(appCatalog).map(([name,items],index) => '<details class="app-filter-group" '+(index===0?'open':'')+'><summary><span>'+esc(name)+'</span><small>'+items.filter(([,pkg])=>b.packages.has(pkg)).length+' / '+items.length+' sélectionnées</small></summary><div class="app-filter-actions"><button type="button" class="ghost" data-select-group="'+index+'">Tout sélectionner</button><button type="button" class="ghost" data-clear-group="'+index+'">Tout désélectionner</button></div><div class="app-filter-list">'+packageRows(items)+'</div></details>').join('');
+    c.innerHTML = `${head(t('blocking_title'), 'Choisissez les applications précises à masquer sur l’appareil.', 3)}<div class="app-filter-layout"><section class="panel app-filter-panel"><div class="app-filter-toolbar"><div><h4>Applications à bloquer</h4><p class="small">Les applications absentes de l’appareil sont ignorées. Les choix décochés auparavant seront réautorisés.</p></div><input type="search" id="filterSearch" placeholder="Rechercher une application ou un identifiant…" aria-label="Rechercher une application"></div>${groupMarkup}</section><aside class="panel app-filter-side"><div class="field"><label for="cExtra">Autres applications (identifiants Android)</label><input type="text" id="cExtra" placeholder="com.exemple.application, org.exemple.app" value="${esc(b.extra)}"></div><p class="small">Identifiants séparés par des virgules. L’identifiant exact figure généralement dans la fiche de l’application.</p><div class="app-filter-summary"><b id="selectedFilterCount">${b.packages.size}</b><span>applications sélectionnées</span></div><div class="notice">Les applications de messagerie ne sont pas présélectionnées. Android masque l’application choisie sans la désinstaller.</div></aside></div>`;
+    const updateCount=()=>{const n=c.querySelector('#selectedFilterCount');if(n)n.textContent=String(b.packages.size);c.querySelectorAll('.app-filter-group').forEach((el,i)=>{const items=Object.values(appCatalog)[i];el.querySelector('summary small').textContent=items.filter(([,pkg])=>b.packages.has(pkg)).length+' / '+items.length+' sélectionnées'})};
+    c.querySelectorAll('[data-filter-package]').forEach(input=>input.onchange=()=>{if(input.checked)b.packages.add(input.dataset.filterPackage);else b.packages.delete(input.dataset.filterPackage);updateCount()});
+    c.querySelectorAll('[data-select-group]').forEach(btn=>btn.onclick=()=>{Object.values(appCatalog)[Number(btn.dataset.selectGroup)].forEach(([,pkg])=>b.packages.add(pkg));renderAndroid(c,'Configuration')});
+    c.querySelectorAll('[data-clear-group]').forEach(btn=>btn.onclick=()=>{Object.values(appCatalog)[Number(btn.dataset.clearGroup)].forEach(([,pkg])=>b.packages.delete(pkg));renderAndroid(c,'Configuration')});
+    c.querySelector('#filterSearch').oninput=e=>{const q=e.target.value.trim().toLocaleLowerCase();c.querySelectorAll('.app-filter-group').forEach(group=>{let visible=0;group.querySelectorAll('.app-filter-row').forEach(row=>{row.hidden=!!q&&!row.textContent.toLocaleLowerCase().includes(q);if(!row.hidden)visible++});group.hidden=!!q&&!visible;if(q&&visible)group.open=true})};
+    $('cExtra').oninput=e=>{b.extra=e.target.value};
   },
 
   'Unlock & Apply'(c) {
@@ -179,11 +188,11 @@ const sections = {
         if (extra.invalid.length) log('Configuration', t('extra_invalid') + extra.invalid.join(', '));
         const material = await window.getAndroidUnlockMaterial();
         const config = {
-          block_browsers: b.browsers,
-          block_ai: b.ai,
-          block_social: b.social,
-          block_store: b.store,
-          extra_packages: extra.valid,
+          block_browsers: false,
+          block_ai: false,
+          block_social: false,
+          block_store: false,
+          extra_packages: [...new Set([...b.packages, ...extra.valid])],
           unlock_intermediate_key: material.intermediate_key
         };
         await client.applyConfig(config, (s) => log('Configuration', t({ launching: 'log_launching_app', sending: 'log_sending_config', relaunching: 'log_relaunching' }[s])));

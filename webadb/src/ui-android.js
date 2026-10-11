@@ -12,6 +12,7 @@ const appCatalog = {
 const defaultBlockedPackages = new Set(Object.values(appCatalog).flat().map(([,pkg]) => pkg));
 
 const client = new YiDreamAdb();
+const state = { blocking: { browsers: true, ai: true, social: true, store: true, extra: '', packages: new Set(defaultBlockedPackages) }, bundledApk: null };
 
 const lang = () => (window.getLang ? window.getLang() : 'en');
 const t = (k) => UI_STRINGS[lang()]?.[k] ?? UI_STRINGS.en[k] ?? k;

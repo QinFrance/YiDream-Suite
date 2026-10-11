@@ -32,6 +32,8 @@ function notify(text){const n=document.createElement('div');n.textContent=text;n
 async function refresh(){state.data=await withTimeout(cloud.loadData(),'des appareils et clients');render()}
 window.toast ||= (text)=>notify(text);
 const androidStyle=document.createElement('style');androidStyle.textContent=`#yd-gate{--surface:#fff;--text:#102448;--muted:#73819a;--line:#dce5f2;--shadow:0 12px 35px #1c3c7012;--soft:#f8f6ff;--blue:#7257d6}#androidWorkspace,#ownerAndroidWorkspace{--surface:#fff;--surface2:#f8f6ff;--text:#102448;--muted:#73819a;--line:#dce5f2;--blue:#7257d6;--red:#b42318;color:var(--text)}#androidWorkspace .stepper,#ownerAndroidWorkspace .stepper{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:15px 0}#androidWorkspace .step,#ownerAndroidWorkspace .step{padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--muted);font-size:11px}#androidWorkspace .step.active,#ownerAndroidWorkspace .step.active{background:var(--pale);border-color:#c7baf0;color:var(--accent)}#androidWorkspace .android-config,#ownerAndroidWorkspace .android-config{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}#androidWorkspace .panel,#ownerAndroidWorkspace .panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:17px;box-shadow:var(--shadow)}#androidWorkspace .panel h4,#ownerAndroidWorkspace .panel h4{margin:0 0 8px;font-size:13px}#androidWorkspace .status-pill,#ownerAndroidWorkspace .status-pill{display:inline-flex;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:700}#androidWorkspace .status-pill.ok,#ownerAndroidWorkspace .status-pill.ok{background:#e7f6e9;color:#23823b}#androidWorkspace .status-pill.no,#ownerAndroidWorkspace .status-pill.no{background:#f0f2f7;color:#66738a}#androidWorkspace .device-row,#ownerAndroidWorkspace .device-row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:11px;background:#fff}#androidWorkspace .phone,#ownerAndroidWorkspace .phone{font-size:26px}#androidWorkspace .small,#ownerAndroidWorkspace .small{font-size:11px;color:var(--muted)}#androidWorkspace .notice,#ownerAndroidWorkspace .notice{padding:13px 15px;border-radius:11px;background:var(--pale);border:1px solid var(--line);color:var(--ink);font-size:12px}#androidWorkspace .log-box,#ownerAndroidWorkspace .log-box{margin-top:14px;padding:12px;border-radius:11px;background:#102448;color:#eaf0ff;font:11px/1.6 ui-monospace,Menlo,monospace;min-height:54px;max-height:190px;overflow:auto;white-space:pre-wrap}#androidWorkspace .form-grid,#ownerAndroidWorkspace .form-grid,#androidWorkspace .check-list,#ownerAndroidWorkspace .check-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}#androidWorkspace .code-display,#ownerAndroidWorkspace .code-display{padding:14px;border-radius:12px;background:var(--soft);font-size:20px;font-weight:800;letter-spacing:.08em;text-align:center}#androidWorkspace .danger,#ownerAndroidWorkspace .danger{color:#b42318}#androidWorkspace button,#ownerAndroidWorkspace button{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:10px 16px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--text);font:700 13px/1.2 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;transition:transform .16s ease,box-shadow .16s ease,background .16s ease}#androidWorkspace button:hover,#ownerAndroidWorkspace button:hover{transform:translateY(-1px);box-shadow:0 8px 18px #10244818}#androidWorkspace button:focus-visible,#ownerAndroidWorkspace button:focus-visible{outline:3px solid #8b75ed66;outline-offset:2px}#androidWorkspace button:disabled,#ownerAndroidWorkspace button:disabled{opacity:.6;cursor:wait;transform:none}#androidWorkspace button.primary,#ownerAndroidWorkspace button.primary{border-color:transparent;background:linear-gradient(135deg,#7357d7,#5e45c3);color:#fff;box-shadow:0 7px 16px #7257d633}#androidWorkspace button.ghost,#ownerAndroidWorkspace button.ghost{background:#fff;color:var(--text)}#androidWorkspace input,#ownerAndroidWorkspace input{width:100%;min-height:42px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--text);font:500 13px/1.3 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}#androidWorkspace .unlock-panel,#ownerAndroidWorkspace .unlock-panel{display:grid;gap:15px;background:linear-gradient(145deg,#fff,#fbfaff)}#androidWorkspace .unlock-intro,#ownerAndroidWorkspace .unlock-intro{display:flex;align-items:center;gap:13px}#androidWorkspace .unlock-intro h4,#ownerAndroidWorkspace .unlock-intro h4,#androidWorkspace .apply-panel h4,#ownerAndroidWorkspace .apply-panel h4{font-size:15px;margin:0 0 4px}#androidWorkspace .unlock-intro p,#ownerAndroidWorkspace .unlock-intro p,#androidWorkspace .apply-panel p,#ownerAndroidWorkspace .apply-panel p{margin:0;color:var(--muted);font-size:12px;line-height:1.5}#androidWorkspace .unlock-badge,#ownerAndroidWorkspace .unlock-badge{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:#f0ebff;font-size:20px;flex:none}#androidWorkspace .apply-panel,#ownerAndroidWorkspace .apply-panel{margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:18px}#androidWorkspace .code-display,#ownerAndroidWorkspace .code-display{margin-top:4px;padding:18px;border:1px solid #e4dcff;background:#f7f4ff;color:#4e36b6;font-size:30px;letter-spacing:.22em}#androidWorkspace .log-box,#ownerAndroidWorkspace .log-box{min-height:40px;border:1px solid #21385f}@media(max-width:540px){#androidWorkspace .apply-panel,#ownerAndroidWorkspace .apply-panel{align-items:stretch;flex-direction:column}}@media(max-width:760px){#androidWorkspace .stepper,#ownerAndroidWorkspace .stepper{grid-template-columns:repeat(2,minmax(0,1fr))}#androidWorkspace .android-config,#ownerAndroidWorkspace .android-config,#androidWorkspace .form-grid,#ownerAndroidWorkspace .form-grid,#androidWorkspace .check-list,#ownerAndroidWorkspace .check-list{grid-template-columns:1fr}}`;document.head.append(androidStyle);
+const yzmStyle=document.createElement('style');yzmStyle.textContent=`.yzm-dashboard{display:grid;gap:18px}.yzm-hero{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:22px 24px}.yzm-hero h2{margin:5px 0;font-size:22px}.yzm-hero p,.yzm-section-head p{margin:5px 0;color:var(--muted)}.yzm-hero small{color:var(--muted)}.yzm-eyebrow{font-size:10px;letter-spacing:.13em;font-weight:800;color:#7357d7}.yzm-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.yzm-stat{min-height:145px;padding:17px 18px;border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:0 8px 24px #1024480a;display:flex;flex-direction:column;gap:7px}.yzm-stat-top{display:flex;justify-content:space-between;align-items:center}.yzm-stat-icon{width:30px;height:30px;display:grid;place-items:center;border-radius:9px;background:#f1edff;color:#694ed0;font-weight:800}.yzm-stat label{font-size:12px;color:var(--muted);font-weight:700}.yzm-stat-value{font-size:28px;line-height:1.1;color:var(--ink)}.yzm-stat small{font-size:11px;line-height:1.45;color:var(--muted)}.yzm-source-status{font-size:10px;font-weight:700;border-radius:999px;padding:4px 8px}.yzm-source-status.ready{background:#e8f5ec;color:#267143}.yzm-source-status.unavailable{background:#f1f2f5;color:#68758b}.yzm-lower-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(290px,.8fr);gap:14px}.yzm-panel{padding:20px}.yzm-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}.yzm-section-head h2{font-size:16px;margin:0}.yzm-period{font-size:11px;color:var(--muted)}.yzm-legend{display:flex;gap:16px;margin:0 0 12px;color:var(--muted);font-size:11px}.yzm-legend span{display:flex;align-items:center;gap:6px}.yzm-legend i{width:9px;height:9px;border-radius:50%}.yzm-chart{display:grid;gap:8px}.yzm-chart-row{display:grid;grid-template-columns:42px minmax(0,1fr) 35px;align-items:center;gap:9px;font-size:10px}.yzm-chart-row time{color:var(--muted)}.yzm-bars{display:grid;gap:2px;min-height:10px}.yzm-bar{height:4px;border-radius:99px;display:block}.yzm-chart-row b{text-align:right}.yzm-empty{padding:26px 12px;text-align:center;color:var(--muted);font-size:12px;background:#f8f9fc;border-radius:10px}.yzm-details{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}.yzm-details summary{cursor:pointer;color:#6249c7;font-size:12px;font-weight:700}.yzm-source-list{display:grid;gap:8px}.yzm-source{padding:10px 11px;border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:10px}.yzm-source div{display:grid;gap:3px}.yzm-source b{font-size:12px}.yzm-source small{font-size:10px;color:var(--muted)}.yzm-note{margin-top:12px;font-size:11px;line-height:1.5}.yzm-caveat{padding:0 2px;color:var(--muted);line-height:1.5}@media(max-width:900px){.yzm-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.yzm-lower-grid{grid-template-columns:1fr}}@media(max-width:560px){.yzm-grid{grid-template-columns:1fr}.yzm-hero{align-items:flex-start;flex-direction:column}.yzm-stat{min-height:120px}}.app-filter-layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(260px,.75fr);gap:12px;align-items:start}.app-filter-panel,.app-filter-side{padding:14px}.app-filter-toolbar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}.app-filter-toolbar h4{margin:0}.app-filter-toolbar p{max-width:560px;margin:5px 0 0}.app-filter-toolbar input{max-width:260px;min-height:38px}.app-filter-group{border-top:1px solid var(--line);padding:8px 0}.app-filter-group>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:10px;padding:6px 2px;font-size:12px;font-weight:750}.app-filter-group>summary::-webkit-details-marker{display:none}.app-filter-group>summary:after{content:'⌄';color:var(--muted)}.app-filter-group>summary small{margin-left:auto;color:var(--muted);font-weight:600}.app-filter-actions{display:flex;gap:7px;margin:3px 0 8px}.app-filter-actions button{min-height:30px;padding:5px 9px;font-size:10px}.app-filter-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.app-filter-row{display:flex;align-items:center;gap:8px;min-width:0;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer}.app-filter-row input{width:15px;min-height:15px;flex:none;accent-color:var(--blue)}.app-filter-row span{display:grid;gap:2px;min-width:0}.app-filter-row b{font-size:11px}.app-filter-row small{font:9px/1.3 ui-monospace,Menlo,monospace;color:var(--muted);overflow-wrap:anywhere}.app-filter-side p{margin:7px 0 14px}.app-filter-summary{display:flex;align-items:center;gap:8px;padding:11px;border-radius:9px;background:#f3efff;color:var(--text);font-size:11px;margin:12px 0}.app-filter-summary b{font-size:19px;color:var(--blue)}.app-filter-row[hidden],.app-filter-group[hidden]{display:none}@media(max-width:760px){.app-filter-layout{grid-template-columns:1fr}.app-filter-toolbar{flex-direction:column}.app-filter-toolbar input{max-width:none;width:100%}}@media(max-width:480px){.app-filter-list{grid-template-columns:1fr}}`;document.head.append(yzmStyle);
+
 function androidLabels(){return adminLanguage==='fr'?{'Connect':'Connexion','Install YiDream':'Installer YiDream','Device Owner':'Administrateur de l’appareil','Configuration':'Configuration','Unlock & Apply':'Déverrouiller et appliquer','Advanced':'Avancé','Logs':'Journal','Settings':'Paramètres'}:adminLanguage==='he'?{'Connect':'חיבור','Install YiDream':'התקנת YiDream','Device Owner':'בעלים של המכשיר','Configuration':'הגדרה','Unlock & Apply':'פתיחה והחלה','Advanced':'מתקדם','Logs':'יומן','Settings':'הגדרות'}:adminLanguage==='yi'?{'Connect':'פֿאַרבינדן','Install YiDream':'ינסטאַלירן YiDream','Device Owner':'דיווייס באַזיצער','Configuration':'קאַנפֿיגוראַציע','Unlock & Apply':'עפֿענען און אָנווענדן','Advanced':'אַוואַנסירט','Logs':'לאָג','Settings':'סעטינגס'}:{}};
 function mountAndroidWorkspace(host){host.innerHTML=`<div class="tabs" id="androidTabs">${androidNav.map(x=>`<button type="button" data-android-section="${esc(x)}" class="${state.androidSection===x?'active':''}">${esc(androidLabels()[x]||x)}</button>`).join('')}</div><div id="androidWorkspace"></div>`;host.querySelectorAll('[data-android-section]').forEach(b=>b.onclick=()=>{state.androidSection=b.dataset.androidSection;mountAndroidWorkspace(host)});renderAndroid(host.querySelector('#androidWorkspace'),state.androidSection)}
 function openAndroidConfigurator(){runGate();if(state.platformRole==='owner'){state.ownerPage='android';renderOwnerPortal();return}state.page='android';state.tab='Tous';state.platformLabel='Android';state.platformMenus.Android=true;render()}
@@ -133,44 +135,92 @@ function renderOwnerPortal(){
 async function loadYzMdmDashboard(host,ownerData){
  if(!host)return;
  const endpoint='https://api.github.com/repos/QinFrance/YZ-MDM';
- const getJson=async url=>{const r=await fetch(url,{headers:{Accept:'application/vnd.github+json'}});if(!r.ok)throw new Error('GitHub HTTP '+r.status);return r.json()};
+ const headers={Accept:'application/vnd.github+json'};
+ const getJson=async url=>{const r=await fetch(url,{headers});if(!r.ok)throw new Error('GitHub HTTP '+r.status);return r.json()};
+ const getAllPages=async url=>{
+  const all=[];let next=url;let pages=0;
+  while(next&&pages<20){
+   const response=await fetch(next,{headers});
+   if(!response.ok)throw new Error('GitHub HTTP '+response.status);
+   const values=await response.json();
+   if(!Array.isArray(values))throw new Error('Réponse GitHub inattendue');
+   all.push(...values);
+   const link=response.headers.get('Link')||'';
+   const match=link.match(/<([^>]+)>;\s*rel="next"/);
+   next=match?match[1]:null;pages++;
+  }
+  if(next)throw new Error('La pagination GitHub est incomplète.');
+  return all;
+ };
  const results=await Promise.allSettled([
   cloud.loadYzMdmMetrics(30),
-  getJson(endpoint+'/releases?per_page=100'),
+  getAllPages(endpoint+'/releases?per_page=100'),
   getJson(endpoint+'/actions/runs?per_page=30'),
-  getJson(endpoint+'/issues?state=open&per_page=100')
+  getAllPages(endpoint+'/issues?state=open&per_page=100')
  ]);
- const rows=results[0].status==='fulfilled'?results[0].value:[];
+ const metricsReady=results[0].status==='fulfilled';
+ const releasesReady=results[1].status==='fulfilled';
+ const runsReady=results[2].status==='fulfilled';
+ const issuesReady=results[3].status==='fulfilled';
+ const rows=metricsReady?results[0].value:[];
+ const releases=releasesReady?results[1].value:[];
+ const runs=runsReady?(results[2].value.workflow_runs||[]):[];
+ const issues=issuesReady?results[3].value.filter(x=>!x.pull_request):[];
  const total=metric=>rows.filter(x=>x.metric===metric).reduce((sum,x)=>sum+Number(x.count||0),0);
- const releases=results[1].status==='fulfilled'?results[1].value:[];
- const runs=results[2].status==='fulfilled'?(results[2].value.workflow_runs||[]):[];
- const issues=results[3].status==='fulfilled'?results[3].value.filter(x=>!x.pull_request):[];
  const downloads=releases.reduce((sum,release)=>sum+(release.assets||[]).reduce((n,asset)=>n+Number(asset.download_count||0),0),0);
  const failedRuns=runs.filter(x=>x.conclusion==='failure').length;
  const pending=ownerData.applications.filter(x=>x.status==='pending').length;
- const metricsReady=results[0].status==='fulfilled';
  const days=Array.from({length:14},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(13-i));return d.toISOString().slice(0,10)});
- const daily=days.map(day=>rows.filter(x=>x.day===day&&x.metric==='site_visit').reduce((n,x)=>n+Number(x.count||0),0));
- const max=Math.max(1,...daily);
- const chart=days.map((day,i)=>'<div title="'+day+' · '+daily[i]+' visites" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;min-width:0"><span style="font-size:10px;color:var(--muted)">'+(daily[i]||'')+'</span><i style="display:block;width:100%;height:'+Math.max(5,Math.round(daily[i]/max*92))+'px;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#5b7cff,#9a8bff)"></i><small style="font-size:9px;color:var(--muted)">'+day.slice(5)+'</small></div>').join('');
- const card=(label,value,note='')=>'<div class="stat"><label>'+label+'</label><strong>'+value+'</strong><small>'+note+'</small></div>';
- host.innerHTML='<div class="panel-head" style="margin-bottom:16px"><div><h2>YZ MDM · suivi des 30 derniers jours</h2><small style="color:var(--muted)">Données actualisées à la demande</small></div><button class="button" id="yzStatsRefresh">Actualiser</button></div>'+
-  '<div class="stats">'+
-   card('Visites du site',total('site_visit'),'Événements anonymes')+
-   card('Connexions WebADB',total('webadb_connected'),'Connexions réussies')+
-   card('Installations YZ',total('launcher_installed'),'Nouvelles installations via WebADB')+
-   card('Échecs d’installation',total('install_failed'),'À investiguer')+
-   card('Clics APK sur le site',total('download_click'),'clics, pas téléchargements terminés')+card('Téléchargements des Releases',downloads,'Assets des Releases GitHub')+
-   card('Builds en erreur',failedRuns,'Parmi les 30 derniers workflows')+
-   card('Demandes GitHub ouvertes',issues.length,'Issues sans pull request')+
-   card('Candidatures admin en attente',pending,'Demandes dans YiDream Suite')+
+ const series=[
+  {key:'site_visit',label:'Visites',color:'#7357d7'},
+  {key:'webadb_connected',label:'WebADB',color:'#2b8a78'},
+  {key:'launcher_installed',label:'Installations',color:'#d08a26'}
+ ];
+ const dailyValue=(day,key)=>rows.filter(x=>x.day===day&&x.metric===key).reduce((sum,x)=>sum+Number(x.count||0),0);
+ const chartMax=Math.max(1,...days.flatMap(day=>series.map(item=>dailyValue(day,item.key))));
+ const chartRows=days.map(day=>{
+  const totalDay=series.reduce((sum,item)=>sum+dailyValue(day,item.key),0);
+  const bars=series.map(item=>{
+   const value=dailyValue(day,item.key);
+   const width=value?Math.max(2,Math.round(value/chartMax*100)):0;
+   return '<span class="yzm-bar" title="'+esc(item.label)+': '+value+'" style="width:'+width+'%;background:'+item.color+'"></span>';
+  }).join('');
+  return '<div class="yzm-chart-row"><time>'+day.slice(5)+'</time><div class="yzm-bars">'+bars+'</div><b>'+totalDay+'</b></div>';
+ }).join('');
+ const statusPill=ready=>'<span class="yzm-source-status '+(ready?'ready':'unavailable')+'">'+(ready?'Disponible':'Indisponible')+'</span>';
+ const card=(label,value,note,icon,ready)=>'<article class="yzm-stat"><div class="yzm-stat-top"><span class="yzm-stat-icon">'+icon+'</span>'+statusPill(ready)+'</div><label>'+label+'</label><strong class="yzm-stat-value">'+(ready?Number(value).toLocaleString('fr-FR'):'—')+'</strong><small>'+ (ready?note:'Source de données indisponible; aucune valeur affichée.')+'</small></article>';
+ const source=(name,detail,ready)=>'<article class="yzm-source"><div><b>'+name+'</b><small>'+detail+'</small></div>'+statusPill(ready)+'</article>';
+ const telemetryNote=metricsReady
+  ?'Comptages agrégés, sans identifiant de téléphone, adresse e-mail ni historique individuel. Les installations sont comptées uniquement quand elles passent par WebADB.'
+  :'Les compteurs anonymes ne sont pas disponibles. Vérifie que la migration Supabase 20261011000000_yz_mdm_metrics.sql a été exécutée.';
+ const anyRecent=metricsReady&&days.some(day=>series.some(item=>dailyValue(day,item.key)>0));
+ const chartContent=metricsReady
+  ?(anyRecent?'<div class="yzm-legend">'+series.map(item=>'<span><i style="background:'+item.color+'"></i>'+item.label+'</span>').join('')+'</div><div class="yzm-chart">'+chartRows+'</div>':'<div class="yzm-empty">Aucun événement mesuré sur les 14 derniers jours. Les relevés vérifiés sont affichés à zéro dans le tableau ci-dessous.</div>')
+  :'<div class="yzm-empty">Graphique indisponible tant que les compteurs Supabase ne répondent pas.</div>';
+ const dailyTable=metricsReady?'<details class="yzm-details"><summary>Afficher les relevés par jour</summary><div class="table-wrap"><table class="table"><thead><tr><th>Date UTC</th><th>Visites</th><th>Connexions WebADB</th><th>Installations</th><th>Échecs</th></tr></thead><tbody>'+days.slice().reverse().map(day=>'<tr><td>'+day+'</td><td>'+dailyValue(day,'site_visit')+'</td><td>'+dailyValue(day,'webadb_connected')+'</td><td>'+dailyValue(day,'launcher_installed')+'</td><td>'+dailyValue(day,'install_failed')+'</td></tr>').join('')+'</tbody></table></div></details>':'';
+ host.innerHTML='<div class="yzm-dashboard">'+
+  '<section class="panel yzm-hero"><div><div class="yzm-eyebrow">TABLEAU DE SUIVI · YZ MDM</div><h2>Activité et qualité des données</h2><p>Fenêtre de suivi : 30 derniers jours. Les chiffres apparaissent uniquement quand leur source répond.</p><small>Dernière actualisation : '+new Date().toLocaleString('fr-FR')+'</small></div><button class="button" id="yzStatsRefresh">Actualiser les données</button></section>'+
+  '<div class="yzm-grid">'+
+   card('Visites du site',metricsReady?total('site_visit'):'—','Événements anonymes agrégés · 30 jours','↗',metricsReady)+
+   card('Connexions WebADB',metricsReady?total('webadb_connected'):'—','Connexions réussies comptées · 30 jours','⌁',metricsReady)+
+   card('Installations YZ',metricsReady?total('launcher_installed'):'—','Installations remontées via WebADB · 30 jours','↓',metricsReady)+
+   card('Échecs d’installation',metricsReady?total('install_failed'):'—','Événements remontés · 30 jours','!',metricsReady)+
+   card('Clics sur le téléchargement APK',metricsReady?total('download_click'):'—','Clics comptés, pas téléchargements terminés','⇩',metricsReady)+
+   card('Téléchargements des Releases',releasesReady?downloads:'—','Total cumulatif déclaré par GitHub','⬇',releasesReady)+
+   card('Builds en erreur',runsReady?failedRuns:'—','Parmi les 30 derniers workflows GitHub','⚒',runsReady)+
+   card('Issues ouvertes',issuesReady?issues.length:'—','Issues GitHub, pull requests exclues','◇',issuesReady)+
+   card('Candidatures en attente',pending,'Comptage direct de YiDream Suite','◎',true)+
   '</div>'+
-  '<section class="panel" style="margin-top:16px"><div class="panel-head"><h2>Visites du site</h2><small>14 derniers jours</small></div><div style="display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:8px;align-items:end;height:145px;padding-top:14px">'+chart+'</div></section>'+
-  '<div class="notice" style="margin-top:14px">'+(metricsReady?'Le suivi compte des événements, sans identifiant de téléphone, adresse e-mail ni historique individuel. Les installations sont comptées quand WebADB installe YZ; les installations faites autrement ne peuvent pas être distinguées.':'Les métriques anonymes ne sont pas encore disponibles. Applique la migration Supabase « 20261011000000_yz_mdm_metrics.sql » pour activer les compteurs.')+' Les échecs de builds, issues et téléchargements viennent des statistiques publiques du dépôt GitHub.</div>';
+  '<div class="yzm-lower-grid"><section class="panel yzm-panel"><div class="yzm-section-head"><div><h2>Évolution journalière</h2><p>Visites, connexions WebADB et installations · 14 derniers jours</p></div><span class="yzm-period">UTC</span></div>'+chartContent+dailyTable+'</section>'+
+   '<section class="panel yzm-panel"><div class="yzm-section-head"><div><h2>Sources des données</h2><p>État réel des connexions au moment du rafraîchissement</p></div></div><div class="yzm-source-list">'+
+    source('Télémétrie YZ MDM','Agrégats anonymes Supabase',metricsReady)+
+    source('Téléchargements','Releases publiques GitHub',releasesReady)+
+    source('Automatisations','30 derniers workflows GitHub',runsReady)+
+    source('Support communautaire','Issues GitHub ouvertes',issuesReady)+
+    source('Gestion YiDream','Candidatures administrateur',true)+
+   '</div><div class="notice yzm-note">'+telemetryNote+'</div><div class="yzm-note yzm-caveat">Les applications installées hors WebADB ne sont pas comptabilisées comme installations YZ. Les téléchargements des Releases sont cumulés depuis GitHub et ne représentent pas une période de 30 jours.</div></section></div>'+
+  '</div>';
  host.querySelector('#yzStatsRefresh').onclick=()=>loadYzMdmDashboard(host,ownerData);
- if(results.slice(1).some(x=>x.status==='rejected')){
-  const note=document.createElement('p');note.className='notice';note.textContent='Certaines statistiques GitHub sont temporairement indisponibles.';host.append(note);
- }
 }
 function applicationRows(items){return items.length?items.map(x=>`<div class="activity-row"><b>${esc(x.store_name)}</b><small>${esc(x.email||x.user_id)} · ${new Date(x.created_at).toLocaleDateString('fr-FR')}</small></div>`).join(''):'<div class="empty">Aucune candidature en attente.</div>'}
 async function reloadOwner(){state.ownerData=await withTimeout(cloud.loadOwnerData(),'des données de gestion');renderOwnerPortal()}

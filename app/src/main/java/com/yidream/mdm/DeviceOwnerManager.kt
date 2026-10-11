@@ -80,7 +80,7 @@ class DeviceOwnerManager(private val context: Context) {
         if (blockAi) selectedPackages.addAll(knownAiApps)
         if (blockSocial) selectedPackages.addAll(knownSocial)
         if (blockStore) selectedPackages.addAll(knownStores)
-        selectedPackages.addAll(extraPackages.filter { it.matches(Regex("[A-Za-z0-9_]+(\\\\.[A-Za-z0-9_]+)+")) })
+        selectedPackages.addAll(extraPackages.filter { it.matches(Regex("""[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)+""")) })
 
         val prefs = context.getSharedPreferences("yidream_mdm_filters", Context.MODE_PRIVATE)
         val previousCustom = prefs.getStringSet("managed_custom_packages", emptySet())?.toSet() ?: emptySet()

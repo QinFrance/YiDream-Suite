@@ -133,44 +133,93 @@ function renderOwnerPortal(){
 async function loadYzMdmDashboard(host,ownerData){
  if(!host)return;
  const endpoint='https://api.github.com/repos/QinFrance/YZ-MDM';
- const getJson=async url=>{const r=await fetch(url,{headers:{Accept:'application/vnd.github+json'}});if(!r.ok)throw new Error('GitHub HTTP '+r.status);return r.json()};
+ const headers={Accept:'application/vnd.github+json'};
+ const getJson=async url=>{const r=await fetch(url,{headers});if(!r.ok)throw new Error('GitHub HTTP '+r.status);return r.json()};
+ const getAllPages=async url=>{
+  const all=[];let next=url;let pages=0;
+  while(next&&pages<20){
+   const response=await fetch(next,{headers});
+   if(!response.ok)throw new Error('GitHub HTTP '+response.status);
+   const values=await response.json();
+   if(!Array.isArray(values))throw new Error('Réponse GitHub inattendue');
+   all.push(...values);
+   const link=response.headers.get('Link')||'';
+   const match=link.match(/<([^>]+)>;\s*rel="next"/);
+   next=match?match[1]:null;pages++;
+  }
+  if(next)throw new Error('La pagination GitHub est incomplète.');
+  return all;
+ };
  const results=await Promise.allSettled([
   cloud.loadYzMdmMetrics(30),
-  getJson(endpoint+'/releases?per_page=100'),
+  getAllPages(endpoint+'/releases?per_page=100'),
   getJson(endpoint+'/actions/runs?per_page=30'),
-  getJson(endpoint+'/issues?state=open&per_page=100')
+  getAllPages(endpoint+'/issues?state=open&per_page=100')
  ]);
- const rows=results[0].status==='fulfilled'?results[0].value:[];
+ const metricsReady=results[0].status==='fulfilled';
+ const releasesReady=results[1].status==='fulfilled';
+ const runsReady=results[2].status==='fulfilled';
+ const issuesReady=results[3].status==='fulfilled';
+ const rows=metricsReady?results[0].value:[];
+ const releases=releasesReady?results[1].value:[];
+ const runs=runsReady?(results[2].value.workflow_runs||[]):[];
+ const issues=issuesReady?results[3].value.filter(x=>!x.pull_request):[];
  const total=metric=>rows.filter(x=>x.metric===metric).reduce((sum,x)=>sum+Number(x.count||0),0);
- const releases=results[1].status==='fulfilled'?results[1].value:[];
- const runs=results[2].status==='fulfilled'?(results[2].value.workflow_runs||[]):[];
- const issues=results[3].status==='fulfilled'?results[3].value.filter(x=>!x.pull_request):[];
  const downloads=releases.reduce((sum,release)=>sum+(release.assets||[]).reduce((n,asset)=>n+Number(asset.download_count||0),0),0);
  const failedRuns=runs.filter(x=>x.conclusion==='failure').length;
  const pending=ownerData.applications.filter(x=>x.status==='pending').length;
- const metricsReady=results[0].status==='fulfilled';
  const days=Array.from({length:14},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(13-i));return d.toISOString().slice(0,10)});
- const daily=days.map(day=>rows.filter(x=>x.day===day&&x.metric==='site_visit').reduce((n,x)=>n+Number(x.count||0),0));
- const max=Math.max(1,...daily);
- const chart=days.map((day,i)=>'<div title="'+day+' · '+daily[i]+' visites" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;min-width:0"><span style="font-size:10px;color:var(--muted)">'+(daily[i]||'')+'</span><i style="display:block;width:100%;height:'+Math.max(5,Math.round(daily[i]/max*92))+'px;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#5b7cff,#9a8bff)"></i><small style="font-size:9px;color:var(--muted)">'+day.slice(5)+'</small></div>').join('');
- const card=(label,value,note='')=>'<div class="stat"><label>'+label+'</label><strong>'+value+'</strong><small>'+note+'</small></div>';
- host.innerHTML='<div class="panel-head" style="margin-bottom:16px"><div><h2>YZ MDM · suivi des 30 derniers jours</h2><small style="color:var(--muted)">Données actualisées à la demande</small></div><button class="button" id="yzStatsRefresh">Actualiser</button></div>'+
-  '<div class="stats">'+
-   card('Visites du site',total('site_visit'),'Événements anonymes')+
-   card('Connexions WebADB',total('webadb_connected'),'Connexions réussies')+
-   card('Installations YZ',total('launcher_installed'),'Nouvelles installations via WebADB')+
-   card('Échecs d’installation',total('install_failed'),'À investiguer')+
-   card('Clics APK sur le site',total('download_click'),'clics, pas téléchargements terminés')+card('Téléchargements des Releases',downloads,'Assets des Releases GitHub')+
-   card('Builds en erreur',failedRuns,'Parmi les 30 derniers workflows')+
-   card('Demandes GitHub ouvertes',issues.length,'Issues sans pull request')+
-   card('Candidatures admin en attente',pending,'Demandes dans YiDream Suite')+
+ const series=[
+  {key:'site_visit',label:'Visites',color:'#7357d7'},
+  {key:'webadb_connected',label:'WebADB',color:'#2b8a78'},
+  {key:'launcher_installed',label:'Installations',color:'#d08a26'}
+ ];
+ const dailyValue=(day,key)=>rows.filter(x=>x.day===day&&x.metric===key).reduce((sum,x)=>sum+Number(x.count||0),0);
+ const chartMax=Math.max(1,...days.flatMap(day=>series.map(item=>dailyValue(day,item.key))));
+ const chartRows=days.map(day=>{
+  const totalDay=series.reduce((sum,item)=>sum+dailyValue(day,item.key),0);
+  const bars=series.map(item=>{
+   const value=dailyValue(day,item.key);
+   const width=value?Math.max(2,Math.round(value/chartMax*100)):0;
+   return '<span class="yzm-bar" title="'+esc(item.label)+': '+value+'" style="width:'+width+'%;background:'+item.color+'"></span>';
+  }).join('');
+  return '<div class="yzm-chart-row"><time>'+day.slice(5)+'</time><div class="yzm-bars">'+bars+'</div><b>'+totalDay+'</b></div>';
+ }).join('');
+ const statusPill=ready=>'<span class="yzm-source-status '+(ready?'ready':'unavailable')+'">'+(ready?'Disponible':'Indisponible')+'</span>';
+ const card=(label,value,note,icon,ready)=>'<article class="yzm-stat"><div class="yzm-stat-top"><span class="yzm-stat-icon">'+icon+'</span>'+statusPill(ready)+'</div><label>'+label+'</label><strong class="yzm-stat-value">'+(ready?Number(value).toLocaleString('fr-FR'):'—')+'</strong><small>'+ (ready?note:'Source de données indisponible; aucune valeur affichée.')+'</small></article>';
+ const source=(name,detail,ready)=>'<article class="yzm-source"><div><b>'+name+'</b><small>'+detail+'</small></div>'+statusPill(ready)+'</article>';
+ const telemetryNote=metricsReady
+  ?'Comptages agrégés, sans identifiant de téléphone, adresse e-mail ni historique individuel. Les installations sont comptées uniquement quand elles passent par WebADB.'
+  :'Les compteurs anonymes ne sont pas disponibles. Vérifie que la migration Supabase 20261011000000_yz_mdm_metrics.sql a été exécutée.';
+ const allVisits=metricsReady?total('site_visit'):0;
+ const anyRecent=metricsReady&&days.some(day=>series.some(item=>dailyValue(day,item.key)>0));
+ const chartContent=metricsReady
+  ?(anyRecent?'<div class="yzm-legend">'+series.map(item=>'<span><i style="background:'+item.color+'"></i>'+item.label+'</span>').join('')+'</div><div class="yzm-chart">'+chartRows+'</div>':'<div class="yzm-empty">Aucun événement mesuré sur les 14 derniers jours. Les relevés vérifiés sont affichés à zéro dans le tableau ci-dessous.</div>')
+  :'<div class="yzm-empty">Graphique indisponible tant que les compteurs Supabase ne répondent pas.</div>';
+ const dailyTable=metricsReady?'<details class="yzm-details"><summary>Afficher les relevés par jour</summary><div class="table-wrap"><table class="table"><thead><tr><th>Date UTC</th><th>Visites</th><th>Connexions WebADB</th><th>Installations</th><th>Échecs</th></tr></thead><tbody>'+days.slice().reverse().map(day=>'<tr><td>'+day+'</td><td>'+dailyValue(day,'site_visit')+'</td><td>'+dailyValue(day,'webadb_connected')+'</td><td>'+dailyValue(day,'launcher_installed')+'</td><td>'+dailyValue(day,'install_failed')+'</td></tr>').join('')+'</tbody></table></div></details>':'';
+ host.innerHTML='<div class="yzm-dashboard">'+
+  '<section class="panel yzm-hero"><div><div class="yzm-eyebrow">TABLEAU DE SUIVI · YZ MDM</div><h2>Activité et qualité des données</h2><p>Fenêtre de suivi : 30 derniers jours. Les chiffres apparaissent uniquement quand leur source répond.</p><small>Dernière actualisation : '+new Date().toLocaleString('fr-FR')+'</small></div><button class="button" id="yzStatsRefresh">Actualiser les données</button></section>'+
+  '<div class="yzm-grid">'+
+   card('Visites du site',metricsReady?total('site_visit'):'—','Événements anonymes · 30 jours','↗',metricsReady)+
+   card('Connexions WebADB',metricsReady?total('webadb_connected'):'—','Connexions réussies · 30 jours','⌁',metricsReady)+
+   card('Installations YZ',metricsReady?total('launcher_installed'):'—','Installations via WebADB · 30 jours','↓',metricsReady)+
+   card('Échecs d’installation',metricsReady?total('install_failed'):'—','Événements remontés · 30 jours','!',metricsReady)+
+   card('Clics sur le téléchargement APK',metricsReady?total('download_click'):'—','Clics comptés, pas téléchargements terminés','⇩',metricsReady)+
+   card('Téléchargements des Releases',releasesReady?downloads:'—','Total cumulatif déclaré par GitHub','⬇',releasesReady)+
+   card('Builds en erreur',runsReady?failedRuns:'—','Parmi les 30 derniers workflows GitHub','⚒',runsReady)+
+   card('Issues ouvertes',issuesReady?issues.length:'—','Issues GitHub, pull requests exclues','◇',issuesReady)+
+   card('Candidatures en attente',pending,'Comptage direct de YiDream Suite','◎',true)+
   '</div>'+
-  '<section class="panel" style="margin-top:16px"><div class="panel-head"><h2>Visites du site</h2><small>14 derniers jours</small></div><div style="display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:8px;align-items:end;height:145px;padding-top:14px">'+chart+'</div></section>'+
-  '<div class="notice" style="margin-top:14px">'+(metricsReady?'Le suivi compte des événements, sans identifiant de téléphone, adresse e-mail ni historique individuel. Les installations sont comptées quand WebADB installe YZ; les installations faites autrement ne peuvent pas être distinguées.':'Les métriques anonymes ne sont pas encore disponibles. Applique la migration Supabase « 20261011000000_yz_mdm_metrics.sql » pour activer les compteurs.')+' Les échecs de builds, issues et téléchargements viennent des statistiques publiques du dépôt GitHub.</div>';
+  '<div class="yzm-lower-grid"><section class="panel yzm-panel"><div class="yzm-section-head"><div><h2>Évolution journalière</h2><p>Visites, connexions WebADB et installations · 14 derniers jours</p></div><span class="yzm-period">UTC</span></div>'+chartContent+dailyTable+'</section>'+
+   '<section class="panel yzm-panel"><div class="yzm-section-head"><div><h2>Sources des données</h2><p>État réel des connexions au moment du rafraîchissement</p></div></div><div class="yzm-source-list">'+
+    source('Télémétrie YZ MDM','Agrégats anonymes Supabase',metricsReady)+
+    source('Téléchargements','Releases publiques GitHub',releasesReady)+
+    source('Automatisations','30 derniers workflows GitHub',runsReady)+
+    source('Support communautaire','Issues GitHub ouvertes',issuesReady)+
+    source('Gestion YiDream','Candidatures administrateur',true)+
+   '</div><div class="notice yzm-note">'+telemetryNote+'</div><div class="yzm-note yzm-caveat">Les applications installées hors WebADB ne sont pas comptabilisées comme installations YZ. Les téléchargements des Releases sont cumulés depuis GitHub et ne représentent pas une période de 30 jours.</div></section></div>'+
+  '</div>';
  host.querySelector('#yzStatsRefresh').onclick=()=>loadYzMdmDashboard(host,ownerData);
- if(results.slice(1).some(x=>x.status==='rejected')){
-  const note=document.createElement('p');note.className='notice';note.textContent='Certaines statistiques GitHub sont temporairement indisponibles.';host.append(note);
- }
 }
 function applicationRows(items){return items.length?items.map(x=>`<div class="activity-row"><b>${esc(x.store_name)}</b><small>${esc(x.email||x.user_id)} · ${new Date(x.created_at).toLocaleDateString('fr-FR')}</small></div>`).join(''):'<div class="empty">Aucune candidature en attente.</div>'}
 async function reloadOwner(){state.ownerData=await withTimeout(cloud.loadOwnerData(),'des données de gestion');renderOwnerPortal()}

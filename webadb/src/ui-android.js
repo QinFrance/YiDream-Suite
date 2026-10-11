@@ -3,11 +3,16 @@ import { YiDreamAdb, parseExtraPackages } from './adb.js';
 import { CONFIG } from './config.js';
 import { UI_STRINGS } from './i18n.js';
 
-const client = new YiDreamAdb();
-const state = {
-  blocking: { browsers: true, ai: true, social: true, store: true, extra: '', packages: new Set(defaultBlockedPackages) },
-  bundledApk: null,
+const appCatalog = {
+  'Navigateurs internet': [['Chrome','com.android.chrome'],['Chrome Beta','com.chrome.beta'],['Firefox','org.mozilla.firefox'],['Samsung Internet','com.sec.android.app.sbrowser'],['Opera','com.opera.browser'],['Opera Mini','com.opera.mini.native'],['Microsoft Edge','com.microsoft.emmx'],['Brave','com.brave.browser'],['DuckDuckGo','com.duckduckgo.mobile.android'],['UC Browser','com.UCMobile.intl'],['Kiwi Browser','com.kiwiz.browser'],['Vivaldi','com.vivaldi.browser'],['Navigateur Android','com.android.browser']],
+  'Assistants IA': [['ChatGPT','com.openai.chatgpt'],['Gemini','com.google.android.apps.bard'],['Google AI','com.google.android.apps.aichat'],['Microsoft Copilot','com.microsoft.copilot'],['Claude','com.anthropic.claude'],['Perplexity','ai.perplexity.app.android'],['DeepSeek','com.deepseek.chat'],['Grok','com.x.grok'],['Character.AI','com.character.ai']],
+  'Réseaux sociaux': [['Instagram','com.instagram.android'],['TikTok','com.zhiliaoapp.musically'],['Facebook','com.facebook.katana'],['Snapchat','com.snapchat.android'],['X','com.twitter.android'],['Reddit','com.reddit.frontpage']],
+  'Boutique d’applications': [['Google Play Store','com.android.vending']]
 };
+const defaultBlockedPackages = new Set(Object.values(appCatalog).flat().map(([,pkg]) => pkg));
+
+const client = new YiDreamAdb();
+
 const lang = () => (window.getLang ? window.getLang() : 'en');
 const t = (k) => UI_STRINGS[lang()]?.[k] ?? UI_STRINGS.en[k] ?? k;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -34,6 +39,7 @@ const errText = (e) => {
   if (m === 'UNSUPPORTED') return t('unsupported');
   if (m === 'NO_DEVICE') return t('log_no_device');
   if (m === 'NOT_CONNECTED') return t('log_connect_first');
+  if (/get_android_unlock_material|schema cache|Could not find the function public\\./i.test(m)) return 'La fonction Android manque dans Supabase. Exécutez webadb/supabase/migrations/20261008000000_android_admin_unlock_key.sql dans SQL Editor, puis rechargez la page.';
   return m;
 };
 const fail = (step, e) => { console.error(e); log(step, '❌ ' + errText(e)); toast(errText(e).split('\n')[0]); };
@@ -149,7 +155,6 @@ const sections = {
   Configuration(c) {
     const b = state.blocking;
     const packageRows = (items) => items.map(([name,pkg]) => '<label class="app-filter-row"><input type="checkbox" data-filter-package="'+esc(pkg)+'" '+(b.packages.has(pkg)?'checked':'')+'><span><b>'+esc(name)+'</b><small>'+esc(pkg)+'</small></span></label>').join('');
-    const groups = Object.entries(appCatalog).map(([name,items,index]) => '').join('');
     const groupMarkup = Object.entries(appCatalog).map(([name,items],index) => '<details class="app-filter-group" '+(index===0?'open':'')+'><summary><span>'+esc(name)+'</span><small>'+items.filter(([,pkg])=>b.packages.has(pkg)).length+' / '+items.length+' sélectionnées</small></summary><div class="app-filter-actions"><button type="button" class="ghost" data-select-group="'+index+'">Tout sélectionner</button><button type="button" class="ghost" data-clear-group="'+index+'">Tout désélectionner</button></div><div class="app-filter-list">'+packageRows(items)+'</div></details>').join('');
     c.innerHTML = `${head(t('blocking_title'), 'Choisissez les applications précises à masquer sur l’appareil.', 3)}<div class="app-filter-layout"><section class="panel app-filter-panel"><div class="app-filter-toolbar"><div><h4>Applications à bloquer</h4><p class="small">Les applications absentes de l’appareil sont ignorées. Les choix décochés auparavant seront réautorisés.</p></div><input type="search" id="filterSearch" placeholder="Rechercher une application ou un identifiant…" aria-label="Rechercher une application"></div>${groupMarkup}</section><aside class="panel app-filter-side"><div class="field"><label for="cExtra">Autres applications (identifiants Android)</label><input type="text" id="cExtra" placeholder="com.exemple.application, org.exemple.app" value="${esc(b.extra)}"></div><p class="small">Identifiants séparés par des virgules. L’identifiant exact figure généralement dans la fiche de l’application.</p><div class="app-filter-summary"><b id="selectedFilterCount">${b.packages.size}</b><span>applications sélectionnées</span></div><div class="notice">Les applications de messagerie ne sont pas présélectionnées. Android masque l’application choisie sans la désinstaller.</div></aside></div>`;
     const updateCount=()=>{const n=c.querySelector('#selectedFilterCount');if(n)n.textContent=String(b.packages.size);c.querySelectorAll('.app-filter-group').forEach((el,i)=>{const items=Object.values(appCatalog)[i];el.querySelector('summary small').textContent=items.filter(([,pkg])=>b.packages.has(pkg)).length+' / '+items.length+' sélectionnées'})};

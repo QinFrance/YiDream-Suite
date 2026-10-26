@@ -75,11 +75,18 @@ class DeviceOwnerManager(private val context: Context) {
         extraPackages: List<String> = emptyList()
     ) {
         if (!isDeviceOwner()) return
-        if (blockBrowsers) knownBrowsers.forEach { setAppBlocked(it, true) }
-        if (blockAi) knownAiApps.forEach { setAppBlocked(it, true) }
-        if (blockSocial) knownSocial.forEach { setAppBlocked(it, true) }
-        if (blockStore) knownStores.forEach { setAppBlocked(it, true) }
-        extraPackages.forEach { setAppBlocked(it, true) }
+        val selectedPackages = mutableSetOf<String>()
+        if (blockBrowsers) selectedPackages.addAll(knownBrowsers)
+        if (blockAi) selectedPackages.addAll(knownAiApps)
+        if (blockSocial) selectedPackages.addAll(knownSocial)
+        if (blockStore) selectedPackages.addAll(knownStores)
+        selectedPackages.addAll(extraPackages.filter { it.matches(Regex("""[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)+""")) })
+
+        val prefs = context.getSharedPreferences("yidream_mdm_filters", Context.MODE_PRIVATE)
+        val previousCustom = prefs.getStringSet("managed_custom_packages", emptySet())?.toSet() ?: emptySet()
+        val managedPackages = (knownBrowsers + knownAiApps + knownSocial + knownStores + previousCustom + selectedPackages).toSet()
+        managedPackages.forEach { packageName -> setAppBlocked(packageName, packageName in selectedPackages) }
+        prefs.edit().putStringSet("managed_custom_packages", (previousCustom + extraPackages).toSet()).apply()
     }
 
     // ---------------------------------------------------------------

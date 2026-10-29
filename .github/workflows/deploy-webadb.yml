@@ -28,30 +28,17 @@ jobs:
       - name: Récupérer le code
         uses: actions/checkout@v4
 
-      # --- Compilation de l'APK Android, pour le bundler dans le site ---
-      - name: Installer Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Configurer le SDK Android
-        uses: android-actions/setup-android@v3
-        with:
-          packages: platform-tools
-          accept-android-sdk-licenses: true
-
-      - name: Générer le gradle wrapper
-        run: gradle wrapper --gradle-version 8.7
-
-      - name: Rendre gradlew exécutable
-        run: chmod +x ./gradlew
-
-      - name: Compiler l'APK debug
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
-
-      - name: Copier l'APK dans le site (servi automatiquement)
-        run: cp app/build/outputs/apk/debug/app-debug.apk webadb/public/yidream.apk
+      - name: Récupérer l’APK YiDream officiel et vérifier son empreinte
+        run: |
+          mkdir -p webadb/public
+          curl --fail --silent --show-error --retry 3 https://qinfrance.github.io/YiDream/version.json -o "$RUNNER_TEMP/yidream-version.json"
+          APK_URL=$(jq -er '.apkUrl | select(. == "https://qinfrance.github.io/YiDream/admin/yidream.apk")' "$RUNNER_TEMP/yidream-version.json")
+          APK_SHA=$(jq -er '.apkSha256 | select(test("^[a-fA-F0-9]{64}$"))' "$RUNNER_TEMP/yidream-version.json")
+          curl --fail --silent --show-error --retry 3 "$APK_URL" -o webadb/public/yidream.apk
+          echo "$APK_SHA  webadb/public/yidream.apk" | sha256sum --check
+          cp "$RUNNER_TEMP/yidream-version.json" webadb/public/yidream-version.json
+          curl --fail --silent --show-error --retry 3 https://qinfrance.github.io/YiDream/admin/yidream-build.json -o webadb/public/yidream-build.json
+          cp webadb/supabase/migrations/20261029000000_mdm_catalog_and_site_requests.sql webadb/public/mdm-setup.sql
 
       # --- Compilation et déploiement du site ---
       - name: Installer Node.js
@@ -65,7 +52,9 @@ jobs:
 
       - name: Compiler le site
         working-directory: webadb
-        run: npm run build
+        run: |
+          node --test tests/current-apk.test.mjs
+          npm run build
 
       - name: Configurer GitHub Pages
         uses: actions/configure-pages@v5

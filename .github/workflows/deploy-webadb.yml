@@ -46,6 +46,12 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Vérifier les réexécutions de la migration SQL
+        working-directory: webadb/supabase/tests
+        run: |
+          npm ci --ignore-scripts
+          npm test
+
       - name: Installer les dépendances
         working-directory: webadb
         run: npm ci

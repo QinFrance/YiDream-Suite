@@ -27,3 +27,5 @@ body{background:var(--bg);color:var(--ink)}
 .stats article{border-radius:16px;box-shadow:0 7px 22px #1c3c7008}
 .nav-link:focus-visible{outline:3px solid #a695ef;outline-offset:2px}
 @media(max-width:720px){.sidebar{background:#fff;border-bottom:1px solid var(--line)}.brand-mark{width:34px;height:34px;font-size:22px}}
+
+.gplay-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.gplay-actions .button{min-height:36px}.gplay-note{margin:2px 0 14px;padding:10px 12px;border:1px solid #eee6ce;border-radius:10px;background:#fffbef;color:#81621c;font-size:11px}

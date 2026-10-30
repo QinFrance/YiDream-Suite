@@ -10,8 +10,11 @@ Dans le projet Supabase, ouvre **SQL Editor**. Si le schéma revendeur n’a pas
 2. `20261007000000_owner_admin_portal.sql`
 3. `20261008000000_android_admin_unlock_key.sql`
 4. `20261011000000_yz_mdm_metrics.sql`
+5. `20261030000000_admin_access_control.sql`
 
-La quatrième migration active les compteurs anonymes agrégés de YZ MDM. Aucun identifiant de personne ou d’appareil n’est stocké ; seules les totaux quotidiens sont conservés. Elle est nécessaire pour afficher les visites, les connexions WebADB, les installations et les échecs dans la console propriétaire.
+La quatrième migration active les compteurs anonymes agrégés de YZ MDM. Aucun identifiant de personne ou d’appareil n’est stocké ; seuls les totaux quotidiens sont conservés. Elle est nécessaire pour afficher les visites, les connexions WebADB, les installations et les échecs dans la console propriétaire.
+
+La cinquième migration ajoute la suspension et la réactivation réversible des comptes administrateur. Elle conserve leurs magasins, clients et appareils, bloque immédiatement les opérations protégées dans Supabase et journalise chaque changement. Si les migrations précédentes ont déjà été exécutées, exécute seulement la cinquième.
 
 La seconde migration ajoute les candidatures d’administrateur, les rôles propriétaire/administrateur et l’état de préparation des appareils. La troisième réserve une clé de déverrouillage Android côté serveur et autorise sa récupération uniquement via une fonction contrôlée pour les administrateurs approuvés.
 
@@ -35,7 +38,7 @@ Cette opération est nécessaire une seule fois et l’adresse du propriétaire 
 
 - Le portail `/admin/` présente YiDream Suite sans connexion et permet de se connecter ou de postuler.
 - Les comptes peuvent s’authentifier par Google ou par e-mail, mais un nouveau compte n’obtient pas automatiquement de droits.
-- Le propriétaire examine les candidatures et accorde ou retire les accès administrateur.
+- Le propriétaire examine les candidatures et peut suspendre puis rétablir les accès administrateur sans supprimer les données du compte.
 - La configuration Android et les outils de gestion demandent une session avec un rôle approuvé.
 - Les appareils peuvent être enregistrés avec l’état **À configurer**. Seul le propriétaire peut les passer à **Configuré**, après la préparation physique.
 

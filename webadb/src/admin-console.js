@@ -113,7 +113,7 @@ function renderOwnerPortal(){
  }else if(state.ownerPage==='applications'){
   body=`<section class="panel"><h2>Candidatures administrateur</h2><div class="table-wrap"><table class="table"><thead><tr><th>Compte</th><th>Boutique</th><th>Motif</th><th>Statut</th><th></th></tr></thead><tbody>${d.applications.map(x=>`<tr><td>${esc(x.email||x.user_id)}</td><td>${esc(x.store_name)}</td><td>${esc(x.reason||'—')}</td><td>${esc(x.status)}</td><td>${x.status==='pending'?`<button class="link" data-review="approve" data-id="${x.id}">Approuver</button> <button class="link" data-review="reject" data-id="${x.id}">Refuser</button>`:esc(x.reviewed_at?new Date(x.reviewed_at).toLocaleDateString('fr-FR'):'—')}</td></tr>`).join('')||'<tr><td colspan="5">Aucune candidature.</td></tr>'}</tbody></table></div></section>`;
  }else if(state.ownerPage==='admins'){
-  body=`<section class="panel"><h2>Comptes administrateur</h2><div class="table-wrap"><table class="table"><thead><tr><th>Adresse du compte</th><th>Rôle</th><th>Ajouté le</th><th></th></tr></thead><tbody>${d.admins.map(x=>`<tr><td>${esc(x.email||x.user_id)}</td><td>${x.role==='owner'?'Propriétaire':'Administrateur'}</td><td>${new Date(x.created_at).toLocaleDateString('fr-FR')}</td><td>${x.role==='admin'?'<button class="link" data-admin-remove="'+x.user_id+'">Retirer l’accès</button>':''}</td></tr>`).join('')}</tbody></table></div></section>`;
+  body=`<section class="panel"><h2>Comptes administrateur</h2><p class="small">Suspendre bloque immédiatement les opérations protégées. Le compte reste dans la liste et peut être réactivé ici.</p><div class="table-wrap"><table class="table"><thead><tr><th>Adresse du compte</th><th>Rôle</th><th>État d’accès</th><th>Ajouté le</th><th></th></tr></thead><tbody>${d.admins.map(x=>{const active=x.is_active!==false;return `<tr><td>${esc(x.email||x.user_id)}</td><td>${x.role==='owner'?'Propriétaire':'Administrateur'}</td><td><span class="badge">${x.role==='owner'?'Protégé':active?'Actif':'Suspendu'}</span></td><td>${new Date(x.created_at).toLocaleDateString('fr-FR')}</td><td>${x.role==='admin'?'<button class="link" data-admin-access="'+x.user_id+'" data-enabled="'+(!active)+'">'+(active?'Suspendre l’accès':'Rétablir l’accès')+'</button>':''}</td></tr>`}).join('')}</tbody></table></div></section>`;
  }else if(state.ownerPage==='stores'){
   body=`<section class="panel"><h2>Magasins et organisations</h2><div class="table-wrap"><table class="table"><thead><tr><th>Magasin</th><th>Adresse</th><th>Clients</th><th>Appareils</th><th></th></tr></thead><tbody>${d.stores.map(x=>`<tr><td>${esc(x.shop_name)}</td><td>${esc(x.email)}</td><td>${d.clients.filter(y=>y.user_id===x.user_id).length}</td><td>${d.devices.filter(y=>y.user_id===x.user_id).length}</td><td><button class="link" data-store-edit="${x.user_id}">Renommer</button></td></tr>`).join('')||'<tr><td colspan="5">Aucun magasin enregistré.</td></tr>'}</tbody></table></div></section>`;
  }else if(state.ownerPage==='clients'){
@@ -125,7 +125,7 @@ function renderOwnerPortal(){
  document.querySelectorAll('[data-owner-page]').forEach(b=>b.onclick=()=>{state.ownerPage=b.dataset.ownerPage;renderOwnerPortal()});document.querySelectorAll('[data-open-android]').forEach(b=>b.onclick=openAndroidConfigurator);if(state.ownerPage==='android')mountAndroidWorkspace($('#ownerAndroidWorkspace'));
  $('#ownerLogout').onclick=async()=>{await cloud.signOut();state.session=null;state.data=null;state.ownerData=null;publicPortal()};
  document.querySelectorAll('[data-review]').forEach(b=>b.onclick=async()=>{try{await cloud.reviewAdminApplication(b.dataset.id,b.dataset.review==='approve');await reloadOwner()}catch(e){notify(errorText(e))}});
- document.querySelectorAll('[data-admin-remove]').forEach(b=>b.onclick=async()=>{if(confirm('Retirer les droits administrateur de ce compte ?'))try{await cloud.setPlatformAdmin(b.dataset.adminRemove,false);await reloadOwner()}catch(e){notify(errorText(e))}});
+ document.querySelectorAll('[data-admin-access]').forEach(b=>b.onclick=async()=>{const enabled=b.dataset.enabled==='true';if(enabled&&!confirm('Rétablir l’accès administrateur de ce compte ?'))return;if(!enabled&&!confirm('Suspendre l’accès administrateur de ce compte ? Ses données seront conservées.'))return;try{await cloud.setPlatformAdminAccess(b.dataset.adminAccess,enabled);await reloadOwner()}catch(e){notify(errorText(e))}});
  document.querySelectorAll('[data-store-edit]').forEach(b=>b.onclick=async()=>{const store=d.stores.find(x=>x.user_id===b.dataset.storeEdit);const name=prompt('Nouveau nom de la boutique',store?.shop_name||'');if(name?.trim())try{await cloud.updateStoreName(b.dataset.storeEdit,name);await reloadOwner()}catch(e){notify(errorText(e))}});
  document.querySelectorAll('[data-client-remove]').forEach(b=>b.onclick=async()=>{if(confirm('Retirer ce client ?'))try{await cloud.removeClient(b.dataset.clientRemove);await reloadOwner()}catch(e){notify(errorText(e))}});
  document.querySelectorAll('[data-device-ready]').forEach(b=>b.onclick=async()=>{try{await cloud.setDeviceConfigured(b.dataset.deviceReady,b.dataset.ready==='true');await reloadOwner()}catch(e){notify(errorText(e))}});
@@ -263,6 +263,10 @@ function renderClients(c,d){
  document.querySelectorAll('[data-remove]').forEach(b=>b.onclick=async()=>{if(confirm('Retirer ce client ?'))try{await cloud.removeClient(b.dataset.remove);await refresh()}catch(e){notify(errorText(e))}});
 }
 function renderActivity(c,d){c.innerHTML=head('Journal d’activité','Actions enregistrées dans votre espace.')+`<section class="panel table-wrap">${d.logs.length?`<table class="table"><thead><tr><th>Action</th><th>Date</th></tr></thead><tbody>${d.logs.map(x=>`<tr><td>${esc(x.action)}</td><td>${new Date(x.created_at).toLocaleString('fr-FR')}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Aucune activité pour le moment.</div>'}</section>`}
+function suspendedScreen(){
+ app.innerHTML='<div class="auth-wrap"><section class="auth"><div class="brand"><img src="'+logoUrl+'" alt=""> YiDream <span style="color:#73819a;font-weight:500">Suite</span></div><h1>Accès administrateur suspendu</h1><p>Le propriétaire YiDream a suspendu ce compte. Les données et appareils restent conservés, mais les actions administrateur sont bloquées. Contacte le propriétaire pour demander le rétablissement de l’accès.</p><button class="button primary" id="suspendedLogout">Se déconnecter</button></section></div>';
+ const button=$('#suspendedLogout');if(button)button.onclick=async()=>{await cloud.signOut();state.session=null;authScreen('login')};
+}
 async function start(){
  try{
   await withTimeout(cloud.ready,'le chargement du service de connexion');
@@ -278,6 +282,7 @@ async function start(){
     return;
   }
   state.platformRole=await withTimeout(cloud.platformRole(),'les droits du compte');
+  if(state.platformRole==='suspended'){suspendedScreen();return}
   if(state.platformRole==='owner'){
     state.ownerData=await withTimeout(cloud.loadOwnerData(),'les données de gestion');
     renderOwnerPortal();

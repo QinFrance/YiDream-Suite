@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
-import { BASE_APPS, parsePlayUrl, deviceLabel, matchesRequest, releaseReady } from './mdm-model.js';
-import { inspectApk } from './mdm-apk.js';
+import { BASE_APPS, parsePlayUrl, deviceLabel, matchesRequest, releaseReady } from './mdm-model.js?v=20261030';
+import { inspectApk } from './mdm-apk.js?v=20261030';
 const db=createClient('https://jqrznghqwdjbizjehzrm.supabase.co','sb_publishable_YG9zgjQ5Y56WiBtKdJMQvA_-UBAFv9B');
 const $=id=>document.getElementById(id),form=$('catalogForm');
 let devices=[],clients=[],requests=[],catalog=[],currentUser=null,isOwner=false,uploaded=null;

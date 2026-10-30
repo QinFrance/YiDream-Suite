@@ -75,3 +75,4 @@ create policy yd_apk_admin_update on storage.objects for update to authenticated
  using(bucket_id='yd-apks' and public.is_platform_admin() and (split_part(name,'/',1)=auth.uid()::text or public.is_platform_owner()))
  with check(bucket_id='yd-apks' and public.is_platform_admin() and (split_part(name,'/',1)=auth.uid()::text or public.is_platform_owner()));
 commit;
+notify pgrst, 'reload schema';

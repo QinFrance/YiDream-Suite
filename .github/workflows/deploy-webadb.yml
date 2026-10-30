@@ -38,7 +38,7 @@ jobs:
           echo "$APK_SHA  webadb/public/yidream.apk" | sha256sum --check
           cp "$RUNNER_TEMP/yidream-version.json" webadb/public/yidream-version.json
           curl --fail --silent --show-error --retry 3 https://qinfrance.github.io/YiDream/admin/yidream-build.json -o webadb/public/yidream-build.json
-          cp webadb/supabase/migrations/20261029000000_mdm_catalog_and_site_requests.sql webadb/public/mdm-setup.sql
+          cat webadb/supabase/migrations/20261029000000_mdm_catalog_and_site_requests.sql webadb/supabase/migrations/20261030000000_catalog_releases_and_revocation.sql > webadb/public/mdm-setup.sql
 
       # --- Compilation et déploiement du site ---
       - name: Installer Node.js
@@ -59,7 +59,7 @@ jobs:
       - name: Compiler le site
         working-directory: webadb
         run: |
-          node --test tests/current-apk.test.mjs
+          node --test tests/current-apk.test.mjs tests/mdm-model.test.mjs
           npm run build
 
       - name: Configurer GitHub Pages

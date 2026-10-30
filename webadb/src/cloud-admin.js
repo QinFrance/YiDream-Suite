@@ -49,8 +49,9 @@ export async function log(action){if(!db)return;const u=await user();const {erro
 
 export async function platformRole(){
   const u=await user();
-  const {data,error}=await mustDb().from('platform_admins').select('role').eq('user_id',u.id).maybeSingle();
+  const {data,error}=await mustDb().from('platform_admins').select('*').eq('user_id',u.id).maybeSingle();
   if(error)throw error;
+  if(data?.role==='admin'&&data.is_active===false)return 'suspended';
   return data?.role||null;
 }
 export async function submitAdminApplication({storeName,reason}){
@@ -73,7 +74,7 @@ export async function loadOwnerData(){
   const d=mustDb();
   const [applications,admins,stores,clients,devices,logs]=await Promise.all([
     d.from('admin_applications').select('*').order('created_at',{ascending:false}),
-    d.from('platform_admins').select('user_id,role,email,created_at').order('created_at',{ascending:false}),
+    d.from('platform_admins').select('*').order('created_at',{ascending:false}),
     d.from('reseller_profiles').select('*').order('created_at',{ascending:false}),
     d.from('clients').select('*').order('created_at',{ascending:false}),
     d.from('devices').select('*').order('created_at',{ascending:false}),
@@ -89,6 +90,16 @@ export async function reviewAdminApplication(id,approve){
 export async function setPlatformAdmin(userId,makeAdmin){
   const {error}=await mustDb().rpc('set_platform_admin',{target_user_id:userId,make_admin:makeAdmin});
   if(error)throw error;
+}
+export async function setPlatformAdminAccess(userId,enabled){
+  const {error}=await mustDb().rpc('set_platform_admin_access',{target_user_id:userId,enabled});
+  if(error){
+    const details=`${error.message||''} ${error.details||''} ${error.hint||''}`;
+    if(error.code==='PGRST202'||/set_platform_admin_access|schema cache/i.test(details)){
+      throw new Error('Le contrôle d’accès doit d’abord être activé dans Supabase. Exécute la migration 20261030000000_admin_access_control.sql dans le SQL Editor, puis recharge la page.');
+    }
+    throw error;
+  }
 }
 export async function getAndroidUnlockMaterial(){
   const {data,error}=await mustDb().rpc('get_android_unlock_material');
